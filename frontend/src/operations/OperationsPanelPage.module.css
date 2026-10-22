@@ -1,0 +1,446 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.sessionBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.sessionInfo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.roleBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background-color: var(--color-brand-soft);
+  color: var(--color-brand);
+}
+
+.municipalityTag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  background-color: var(--color-surface-muted);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.sessionUserText {
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.sessionActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* Login View */
+.loginLayout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+  max-width: 980px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+@media (min-width: 860px) {
+  .loginLayout {
+    grid-template-columns: 1fr 1.15fr;
+  }
+}
+
+.loginForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.loginHint {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.errorBox {
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background-color: var(--color-risk-critical-bg);
+  color: var(--color-risk-critical-text);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+}
+
+.successBox {
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background-color: var(--color-risk-low-bg);
+  color: var(--color-risk-low-text);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.demoAccountsList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.demoAccountItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface-muted);
+}
+
+.demoAccountMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.demoAccountTitle {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.demoAccountSub {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+/* Admin View */
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: var(--space-3);
+}
+
+.kpiCard {
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.kpiLabel {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+.kpiValue {
+  font-size: var(--font-size-2xl);
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.kpiSub {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.adminTwoCol {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+@media (min-width: 960px) {
+  .adminTwoCol {
+    grid-template-columns: 380px 1fr;
+  }
+}
+
+.staffForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.lockedField {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-muted);
+  border: 1px dashed var(--color-border);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.tableWrapper {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.table th {
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  font-weight: 700;
+}
+
+/* Manager Strategic Map View */
+.strategicWorkspace {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+@media (min-width: 980px) {
+  .strategicWorkspace {
+    grid-template-columns: 1.35fr 1fr;
+  }
+}
+
+.mapToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.clusterLegend {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-risk-low-text);
+  background-color: var(--color-risk-low-bg);
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+}
+
+.radiusButtons {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.mapBox {
+  height: 460px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+}
+
+.criticalZoneCircle {
+  stroke: #16a34a;
+  stroke-width: 3px;
+  stroke-dasharray: 6 4;
+  fill: #22c55e;
+  fill-opacity: 0.22;
+}
+
+.alertMarkerCritical {
+  stroke: #991b1b;
+  stroke-width: 2px;
+  fill: #dc2626;
+  fill-opacity: 0.92;
+}
+
+.alertMarkerMedium {
+  stroke: #92400e;
+  stroke-width: 2px;
+  fill: #f59e0b;
+  fill-opacity: 0.92;
+}
+
+.alertMarkerLow {
+  stroke: #065f46;
+  stroke-width: 2px;
+  fill: #10b981;
+  fill-opacity: 0.92;
+}
+
+.managerList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-height: 480px;
+  overflow-y: auto;
+}
+
+.managerAlertCard {
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface-muted);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.managerAlertCardSelected {
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 2px var(--color-brand-soft);
+}
+
+.managerAlertHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.managerAlertTitle {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.managerAlertSub {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.assignRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.assignedBadge {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--color-brand);
+  background-color: var(--color-brand-soft);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+}
+
+/* Crew Tactical Mobile View */
+.tacticalGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+@media (min-width: 960px) {
+  .tacticalGrid {
+    grid-template-columns: 1.2fr 1fr;
+  }
+}
+
+.crewPositionBlueDot {
+  stroke: #ffffff;
+  stroke-width: 3px;
+  fill: #2563eb;
+  fill-opacity: 1;
+}
+
+.crewRouteLine {
+  stroke: #2563eb;
+  stroke-width: 4px;
+  stroke-dasharray: 8 6;
+}
+
+.gpsStatusBanner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background-color: var(--color-brand-soft);
+  color: var(--color-brand);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  margin-bottom: var(--space-3);
+}
+
+.tacticalTaskCard {
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--color-border);
+  background-color: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.tacticalTaskCardActive {
+  border-color: var(--color-brand);
+}
+
+.resolveBigButton {
+  width: 100%;
+  padding: var(--space-4);
+  border: none;
+  border-radius: var(--radius-md);
+  background-color: #16a34a;
+  color: #ffffff;
+  font-size: var(--font-size-base);
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  transition: filter 0.15s ease, transform 0.1s ease;
+}
+
+.resolveBigButton:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.resolveBigButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

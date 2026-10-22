@@ -135,4 +135,13 @@ export class CreateUrbanAlertDto {
   @IsString()
   @MaxLength(280)
   notes?: string;
+
+  @ApiPropertyOptional({
+    description: 'URL relativa de la fotografía almacenada por StorageService (ej. /uploads/urban-alerts/...)',
+    example: '/uploads/urban-alerts/1729550000-a1b2c3d4.jpg',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  imageUrl?: string;
 }

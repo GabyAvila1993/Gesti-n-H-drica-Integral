@@ -141,6 +141,66 @@
       "minutesAgo": 340,
       "lat": -32.9765,
       "lng": -68.7865
+    },
+    {
+      "id": "urb-seed-6",
+      "analysisId": "seed-analysis-6",
+      "municipality": "Capital",
+      "address": "Av. Emilio Civit y Tiburcio Benegas (Quinta Sección)",
+      "obstructionPercentage": 85,
+      "riskLevel": "CRITICO",
+      "detectionsCount": 3,
+      "scenarioKey": "bajo",
+      "notes": "Tapón de botellas y bolsas en alcantarilla de cruce. A 140 metros del reporte de Belgrano.",
+      "minutesAgo": 65,
+      "lat": -32.8888,
+      "lng": -68.8576
+    },
+    {
+      "id": "urb-seed-7",
+      "analysisId": "seed-analysis-7",
+      "municipality": "Capital",
+      "address": "Sarmiento y Perú",
+      "obstructionPercentage": 47,
+      "riskLevel": "MEDIO",
+      "detectionsCount": 2,
+      "scenarioKey": "medio",
+      "notes": "Ramas caídas y trozo de mampostería dentro de la acequia.",
+      "minutesAgo": 95,
+      "lat": -32.8902,
+      "lng": -68.8531
+    },
+    {
+      "id": "urb-seed-8",
+      "analysisId": "seed-analysis-8",
+      "municipality": "Capital",
+      "address": "Av. Las Heras y Patricias Mendocinas",
+      "obstructionPercentage": 91,
+      "riskLevel": "CRITICO",
+      "detectionsCount": 3,
+      "scenarioKey": "critico",
+      "notes": "Limpieza completada por cuadrilla municipal con retiro de 6 bolsas de residuos plásticos.",
+      "minutesAgo": 420,
+      "resolvedMinutesAgo": 355,
+      "status": "RESOLVED",
+      "lat": -32.8851,
+      "lng": -68.8439
+    },
+    {
+      "id": "urb-seed-9",
+      "analysisId": "seed-analysis-9",
+      "municipality": "Capital",
+      "address": "Av. Colón y San Martín",
+      "obstructionPercentage": 47,
+      "riskLevel": "MEDIO",
+      "detectionsCount": 2,
+      "scenarioKey": "medio",
+      "notes": "Despeje de escombros y ramas secas finalizado sin novedades.",
+      "minutesAgo": 720,
+      "resolvedMinutesAgo": 672,
+      "status": "RESOLVED",
+      "lat": -32.8938,
+      "lng": -68.8418
     }
   ]
 }

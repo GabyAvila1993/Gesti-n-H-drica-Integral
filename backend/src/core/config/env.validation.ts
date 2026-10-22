@@ -12,6 +12,7 @@ import {
 
 export const SATELLITE_PROVIDERS = ['mock', 'copernicus'] as const;
 export const VISION_PROVIDERS = ['mock', 'huggingface', 'roboflow'] as const;
+export const STORAGE_PROVIDERS = ['local', 's3', 'cloudinary'] as const;
 
 class EnvironmentVariables {
   @IsOptional()
@@ -53,6 +54,18 @@ class EnvironmentVariables {
   @IsOptional()
   @IsNumber()
   UPLOAD_MAX_SIZE_MB?: number;
+
+  @IsOptional()
+  @IsString()
+  DATABASE_URL?: string;
+
+  @IsOptional()
+  @IsString()
+  JWT_SECRET?: string;
+
+  @IsOptional()
+  @IsIn(STORAGE_PROVIDERS)
+  STORAGE_PROVIDER?: string;
 }
 
 /**

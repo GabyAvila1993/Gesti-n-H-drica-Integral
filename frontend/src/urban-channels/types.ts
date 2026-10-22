@@ -39,6 +39,7 @@ export interface UrbanAnalysisResult {
   mimeType: string;
   provider: string;
   analyzedAt: string;
+  imageUrl?: string;
   obstructionPercentage: number;
   riskLevel: Severity;
   detections: DetectedObject[];
@@ -50,12 +51,15 @@ export interface UrbanAlert {
   analysisId: string;
   municipality: Municipality;
   address: string;
+  imageUrl?: string;
   obstructionPercentage: number;
   riskLevel: Severity;
   detectionsCount: number;
   detections: DetectedObject[];
   notes?: string;
+  status?: 'PENDING' | 'RESOLVED';
   createdAt: string;
+  resolvedAt?: string;
   location: {
     type: 'Point';
     coordinates: [number, number];
@@ -66,6 +70,7 @@ export interface CreateUrbanAlertPayload {
   analysisId: string;
   municipality: Municipality;
   address: string;
+  imageUrl?: string;
   obstructionPercentage: number;
   riskLevel: Severity;
   detections: DetectedObject[];

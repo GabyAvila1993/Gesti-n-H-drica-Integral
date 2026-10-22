@@ -26,7 +26,10 @@ export interface UrbanDatasetJson {
     readonly detectionsCount: number;
     readonly scenarioKey: PresetScenarioKey;
     readonly notes?: string;
+    readonly imageUrl?: string;
+    readonly status?: 'PENDING' | 'RESOLVED';
     readonly minutesAgo: number;
+    readonly resolvedMinutesAgo?: number;
     readonly lat: number;
     readonly lng: number;
   }>;

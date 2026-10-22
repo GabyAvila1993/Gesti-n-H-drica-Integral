@@ -87,6 +87,7 @@ export function useImageAnalysis() {
           analysisId: analysis.result.analysisId,
           municipality: input.municipality,
           address: input.address,
+          imageUrl: analysis.result.imageUrl,
           obstructionPercentage: analysis.result.obstructionPercentage,
           riskLevel: analysis.result.riskLevel,
           detections: analysis.result.detections,

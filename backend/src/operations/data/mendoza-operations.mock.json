@@ -1,0 +1,84 @@
+{
+  "defaultPasswordPlain": "mendoza2026",
+  "seedUsers": [
+    {
+      "id": "11111111-1111-4111-8111-111111111101",
+      "username": "adminCapital",
+      "role": "ADMIN",
+      "municipality": "Capital",
+      "fullName": "Dirección de Higiene Urbana · Capital"
+    },
+    {
+      "id": "11111111-1111-4111-8111-111111111102",
+      "username": "encargadoCapital",
+      "role": "ENCARGADO",
+      "municipality": "Capital",
+      "fullName": "Ing. Martín Quiroga (Jefe Operativo Capital)"
+    },
+    {
+      "id": "11111111-1111-4111-8111-111111111103",
+      "username": "cuadrillaCapital1",
+      "role": "CUADRILLA",
+      "municipality": "Capital",
+      "fullName": "Cuadrilla Hidráulica #1 (Quinta y Centro)"
+    },
+    {
+      "id": "11111111-1111-4111-8111-111111111104",
+      "username": "cuadrillaCapital2",
+      "role": "CUADRILLA",
+      "municipality": "Capital",
+      "fullName": "Cuadrilla Hidráulica #2 (Cuarta y Sexta)"
+    },
+    {
+      "id": "22222222-2222-4222-8222-222222222201",
+      "username": "adminGodoyCruz",
+      "role": "ADMIN",
+      "municipality": "Godoy Cruz",
+      "fullName": "Secretaría de Ambiente y Obras · Godoy Cruz"
+    },
+    {
+      "id": "22222222-2222-4222-8222-222222222202",
+      "username": "encargadoGodoyCruz",
+      "role": "ENCARGADO",
+      "municipality": "Godoy Cruz",
+      "fullName": "Téc. Valeria Sosa (Coordinadora Godoy Cruz)"
+    },
+    {
+      "id": "22222222-2222-4222-8222-222222222203",
+      "username": "cuadrillaGodoyCruz1",
+      "role": "CUADRILLA",
+      "municipality": "Godoy Cruz",
+      "fullName": "Cuadrilla Sur #1 (San Martín Sur / Centro)"
+    }
+  ],
+  "seedAssignments": [
+    {
+      "id": "33333333-3333-4333-8333-333333333301",
+      "alertId": "urb-seed-1",
+      "assignedByUsername": "encargadoCapital",
+      "crewUsername": "cuadrillaCapital1",
+      "status": "PENDING",
+      "assignedMinutesAgo": 38
+    },
+    {
+      "id": "33333333-3333-4333-8333-333333333302",
+      "alertId": "urb-seed-8",
+      "assignedByUsername": "encargadoCapital",
+      "crewUsername": "cuadrillaCapital1",
+      "status": "RESOLVED",
+      "assignedMinutesAgo": 410,
+      "resolvedMinutesAgo": 355,
+      "resolutionNotes": "Se retiraron bolsas plásticas y envases PET con camión volcador."
+    },
+    {
+      "id": "33333333-3333-4333-8333-333333333303",
+      "alertId": "urb-seed-9",
+      "assignedByUsername": "encargadoCapital",
+      "crewUsername": "cuadrillaCapital2",
+      "status": "RESOLVED",
+      "assignedMinutesAgo": 710,
+      "resolvedMinutesAgo": 672,
+      "resolutionNotes": "Se extrajo losa de hormigón partida con barreta y se despejó sifón."
+    }
+  ]
+}

@@ -3,4 +3,5 @@ export const ROUTES = {
   dashboard: '/',
   satellite: '/monitoreo-satelital',
   urban: '/acequias-urbanas',
+  admin: '/panel-administrador',
 } as const;

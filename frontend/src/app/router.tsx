@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { DashboardPage } from '../dashboard/DashboardPage';
+import { OperationsPanelPage } from '../operations/OperationsPanelPage';
 import { SatelliteMonitoringPage } from '../satellite-monitoring/SatelliteMonitoringPage';
 import { UrbanChannelsPage } from '../urban-channels/UrbanChannelsPage';
 import { AppLayout } from './layout/AppLayout';
@@ -21,6 +22,11 @@ export const router = createBrowserRouter([
         path: ROUTES.urban.slice(1),
         element: <UrbanChannelsPage />,
         handle: { title: 'Acequias urbanas' },
+      },
+      {
+        path: ROUTES.admin.slice(1),
+        element: <OperationsPanelPage />,
+        handle: { title: 'Panel Administrador' },
       },
       { path: 'inicio', element: <Navigate to={ROUTES.dashboard} replace /> },
       { path: '*', element: <NotFoundPage />, handle: { title: 'Página no encontrada' } },

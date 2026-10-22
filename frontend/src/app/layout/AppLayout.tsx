@@ -24,6 +24,13 @@ const NAV_ITEMS = [
     icon: '🏙️',
     end: false,
   },
+  {
+    to: ROUTES.admin,
+    label: 'Panel Administrador',
+    shortLabel: 'Admin',
+    icon: '🛡️',
+    end: false,
+  },
 ];
 
 export function AppLayout() {

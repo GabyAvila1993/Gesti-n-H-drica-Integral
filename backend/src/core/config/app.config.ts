@@ -41,6 +41,32 @@ export const visionConfig = registerAs('vision', () => ({
   uploadMaxSizeMb: Number(process.env.UPLOAD_MAX_SIZE_MB ?? 10),
 }));
 
+export const databaseConfig = registerAs('database', () => ({
+  url: process.env.DATABASE_URL ?? '',
+  host: process.env.DB_HOST ?? 'localhost',
+  port: Number(process.env.DB_PORT ?? 5432),
+  username: process.env.DB_USERNAME ?? 'postgres',
+  password: process.env.DB_PASSWORD ?? '',
+  database: process.env.DB_DATABASE ?? 'gestion_hidrica',
+  ssl: process.env.DB_SSL === 'true' || (process.env.DATABASE_URL ?? '').includes('sslmode=require') || (process.env.DATABASE_URL ?? '').includes('neon.tech'),
+  synchronize: process.env.DB_SYNCHRONIZE !== 'false',
+}));
+
+export const authConfig = registerAs('auth', () => ({
+  jwtSecret: process.env.JWT_SECRET ?? 'ghi-mendoza-jwt-secret-2026-operativa-municipal',
+  jwtExpiresIn: process.env.JWT_EXPIRES_IN ?? '12h',
+  bcryptSaltRounds: Number(process.env.BCRYPT_SALT_ROUNDS ?? 10),
+}));
+
+export const storageConfig = registerAs('storage', () => ({
+  provider: process.env.STORAGE_PROVIDER ?? 'local',
+  localDir: process.env.STORAGE_LOCAL_DIR ?? 'uploads',
+  publicPath: process.env.STORAGE_PUBLIC_PATH ?? '/uploads',
+}));
+
 export type AppConfig = ReturnType<typeof appConfig>;
 export type SatelliteConfig = ReturnType<typeof satelliteConfig>;
 export type VisionConfig = ReturnType<typeof visionConfig>;
+export type DatabaseConfig = ReturnType<typeof databaseConfig>;
+export type AuthConfig = ReturnType<typeof authConfig>;
+export type StorageConfig = ReturnType<typeof storageConfig>;

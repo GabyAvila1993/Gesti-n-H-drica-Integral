@@ -113,31 +113,63 @@ async function executeFetch<T>(
   }
 }
 
-/** Cliente HTTP GET basado en fetch con timeout y validación de JSON. */
-export async function httpGet<T>(path: string, signal?: AbortSignal): Promise<T> {
+/** Cliente HTTP GET basado en fetch con timeout, validación de JSON y Bearer token opcional. */
+export async function httpGet<T>(
+  path: string,
+  signal?: AbortSignal,
+  token?: string,
+): Promise<T> {
+  const headers: Record<string, string> = { Accept: 'application/json' };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return executeFetch<T>(path, { headers }, signal);
+}
+
+/** Cliente HTTP POST JSON con timeout, validación de JSON y Bearer token opcional. */
+export async function httpPost<T, B = unknown>(
+  path: string,
+  body: B,
+  signal?: AbortSignal,
+  token?: string,
+): Promise<T> {
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+  };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
   return executeFetch<T>(
     path,
     {
-      headers: { Accept: 'application/json' },
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
     },
     signal,
   );
 }
 
-/** Cliente HTTP POST JSON con timeout y validación de JSON. */
-export async function httpPost<T, B = unknown>(
+/** Cliente HTTP PATCH JSON con timeout, validación de JSON y Bearer token opcional. */
+export async function httpPatch<T, B = unknown>(
   path: string,
   body: B,
   signal?: AbortSignal,
+  token?: string,
 ): Promise<T> {
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+  };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
   return executeFetch<T>(
     path,
     {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
+      method: 'PATCH',
+      headers,
       body: JSON.stringify(body),
     },
     signal,
