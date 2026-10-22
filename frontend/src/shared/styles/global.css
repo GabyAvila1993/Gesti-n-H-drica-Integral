@@ -1,0 +1,46 @@
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: var(--font-size-md);
+  line-height: 1.5;
+  color: var(--text-primary);
+  background-color: var(--bg-main);
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent-500);
+  outline-offset: 2px;
+}
+
+/* Ajustes globales de Leaflet para integrarlo con la estética del sistema */
+.leaflet-container {
+  font-family: var(--font-family);
+  background-color: var(--bg-subtle);
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-tooltip {
+  background-color: var(--surface-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+
+[data-theme='dark'] .leaflet-tile-pane {
+  filter: brightness(0.78) contrast(1.12) saturate(0.85);
+}

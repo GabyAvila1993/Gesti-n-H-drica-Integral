@@ -1,0 +1,181 @@
+{
+  "canals": [
+    {
+      "id": "cacique-guaymallen",
+      "name": "Canal Cacique Guaymallén",
+      "description": "Canal matriz principal que nace en el Dique Cipolletti y vertebra el Gran Mendoza de sur a norte por la Costanera.",
+      "nominalFlowM3s": 22.0,
+      "vertices": [
+        { "lat": -32.9965, "lng": -68.879, "municipality": "Luján de Cuyo" },
+        { "lat": -32.982, "lng": -68.8665, "municipality": "Luján de Cuyo" },
+        { "lat": -32.965, "lng": -68.8555, "municipality": "Godoy Cruz" },
+        { "lat": -32.9455, "lng": -68.8455, "municipality": "Godoy Cruz" },
+        { "lat": -32.926, "lng": -68.8385, "municipality": "Godoy Cruz" },
+        { "lat": -32.907, "lng": -68.8345, "municipality": "Capital" },
+        { "lat": -32.8895, "lng": -68.8315, "municipality": "Guaymallén" },
+        { "lat": -32.872, "lng": -68.8295, "municipality": "Guaymallén" },
+        { "lat": -32.8555, "lng": -68.8255, "municipality": "Las Heras" },
+        { "lat": -32.8395, "lng": -68.8185, "municipality": "Las Heras" },
+        { "lat": -32.8205, "lng": -68.8085, "municipality": "Las Heras" }
+      ]
+    },
+    {
+      "id": "zanjon-frias",
+      "name": "Canal Zanjón Frías",
+      "description": "Colector aluvional y de riego del piedemonte oeste que limita Godoy Cruz y Capital antes de descargar al Cacique Guaymallén.",
+      "nominalFlowM3s": 6.5,
+      "vertices": [
+        { "lat": -32.9125, "lng": -68.902, "municipality": "Godoy Cruz" },
+        { "lat": -32.9085, "lng": -68.884, "municipality": "Godoy Cruz" },
+        { "lat": -32.905, "lng": -68.868, "municipality": "Capital" },
+        { "lat": -32.9035, "lng": -68.8515, "municipality": "Capital" },
+        { "lat": -32.9065, "lng": -68.8345, "municipality": "Capital" }
+      ]
+    },
+    {
+      "id": "matriz-san-martin",
+      "name": "Canal Matriz San Martín",
+      "description": "Canal matriz derivado desde el río Mendoza en Luján de Cuyo hacia el este agrícola e industrial de Maipú.",
+      "nominalFlowM3s": 18.0,
+      "vertices": [
+        { "lat": -32.9955, "lng": -68.8765, "municipality": "Luján de Cuyo" },
+        { "lat": -32.9995, "lng": -68.851, "municipality": "Luján de Cuyo" },
+        { "lat": -33.004, "lng": -68.8215, "municipality": "Maipú" },
+        { "lat": -33.0085, "lng": -68.7915, "municipality": "Maipú" },
+        { "lat": -33.0135, "lng": -68.7615, "municipality": "Maipú" },
+        { "lat": -33.0185, "lng": -68.7305, "municipality": "Maipú" }
+      ]
+    },
+    {
+      "id": "canal-pescara",
+      "name": "Canal Colector Pescara",
+      "description": "Gran colector de drenaje y riego del sector este del Gran Mendoza que recorre Guaymallén (Rodeo de la Cruz) y Maipú (Coquimbito).",
+      "nominalFlowM3s": 11.5,
+      "vertices": [
+        { "lat": -32.952, "lng": -68.792, "municipality": "Maipú" },
+        { "lat": -32.934, "lng": -68.779, "municipality": "Maipú" },
+        { "lat": -32.916, "lng": -68.765, "municipality": "Guaymallén" },
+        { "lat": -32.898, "lng": -68.751, "municipality": "Guaymallén" },
+        { "lat": -32.881, "lng": -68.736, "municipality": "Guaymallén" },
+        { "lat": -32.866, "lng": -68.721, "municipality": "Guaymallén" }
+      ]
+    },
+    {
+      "id": "canal-villanueva",
+      "name": "Canal Villanueva",
+      "description": "Rama urbana y periurbana que se desprende del Cacique Guaymallén abasteciendo Dorrego, Villa Nueva y Pedro Molina.",
+      "nominalFlowM3s": 7.2,
+      "vertices": [
+        { "lat": -32.912, "lng": -68.835, "municipality": "Godoy Cruz" },
+        { "lat": -32.9045, "lng": -68.822, "municipality": "Guaymallén" },
+        { "lat": -32.8965, "lng": -68.807, "municipality": "Guaymallén" },
+        { "lat": -32.888, "lng": -68.792, "municipality": "Guaymallén" },
+        { "lat": -32.879, "lng": -68.778, "municipality": "Guaymallén" }
+      ]
+    },
+    {
+      "id": "canal-san-eduardo",
+      "name": "Canal San Eduardo - Corralitos",
+      "description": "Cauce de distribución agrícola para el cinturón verde de Guaymallén (Buena Nueva, Capilla del Rosario y Los Corralitos).",
+      "nominalFlowM3s": 5.8,
+      "vertices": [
+        { "lat": -32.884, "lng": -68.814, "municipality": "Guaymallén" },
+        { "lat": -32.876, "lng": -68.795, "municipality": "Guaymallén" },
+        { "lat": -32.868, "lng": -68.773, "municipality": "Guaymallén" },
+        { "lat": -32.861, "lng": -68.751, "municipality": "Guaymallén" },
+        { "lat": -32.854, "lng": -68.729, "municipality": "Guaymallén" }
+      ]
+    },
+    {
+      "id": "canal-compuertas",
+      "name": "Canal Compuertas - Vistalba",
+      "description": "Toma superior del río Mendoza que riega Las Compuertas, Vistalba y Chacras de Coria en Luján de Cuyo.",
+      "nominalFlowM3s": 8.4,
+      "vertices": [
+        { "lat": -33.038, "lng": -68.942, "municipality": "Luján de Cuyo" },
+        { "lat": -33.021, "lng": -68.922, "municipality": "Luján de Cuyo" },
+        { "lat": -33.005, "lng": -68.904, "municipality": "Luján de Cuyo" },
+        { "lat": -32.989, "lng": -68.889, "municipality": "Luján de Cuyo" },
+        { "lat": -32.971, "lng": -68.878, "municipality": "Luján de Cuyo" }
+      ]
+    },
+    {
+      "id": "jarillal-hijuela-gil",
+      "name": "Canal Jarillal - Hijuela Gil",
+      "description": "Cauce secundario de riego agrícola y drenaje periurbano que vincula Guaymallén con el sector central de Maipú.",
+      "nominalFlowM3s": 4.5,
+      "vertices": [
+        { "lat": -32.918, "lng": -68.821, "municipality": "Guaymallén" },
+        { "lat": -32.927, "lng": -68.804, "municipality": "Guaymallén" },
+        { "lat": -32.939, "lng": -68.788, "municipality": "Maipú" },
+        { "lat": -32.954, "lng": -68.773, "municipality": "Maipú" },
+        { "lat": -32.969, "lng": -68.759, "municipality": "Maipú" }
+      ]
+    },
+    {
+      "id": "canal-tajamar",
+      "name": "Canal Tajamar - Panquehua",
+      "description": "Histórico cauce urbano que bordea el oeste de Capital y continúa hacia el norte irrigando Panquehua y Las Heras.",
+      "nominalFlowM3s": 5.1,
+      "vertices": [
+        { "lat": -32.895, "lng": -68.858, "municipality": "Capital" },
+        { "lat": -32.881, "lng": -68.853, "municipality": "Capital" },
+        { "lat": -32.866, "lng": -68.848, "municipality": "Capital" },
+        { "lat": -32.851, "lng": -68.843, "municipality": "Las Heras" },
+        { "lat": -32.835, "lng": -68.838, "municipality": "Las Heras" },
+        { "lat": -32.819, "lng": -68.832, "municipality": "Las Heras" }
+      ]
+    },
+    {
+      "id": "canal-civit-parque",
+      "name": "Canal Civit - Parque San Martín",
+      "description": "Derivación occidental que alimenta el sistema de riego forestal del Parque General San Martín y el piedemonte de Capital.",
+      "nominalFlowM3s": 3.9,
+      "vertices": [
+        { "lat": -32.952, "lng": -68.869, "municipality": "Godoy Cruz" },
+        { "lat": -32.932, "lng": -68.867, "municipality": "Godoy Cruz" },
+        { "lat": -32.911, "lng": -68.869, "municipality": "Capital" },
+        { "lat": -32.892, "lng": -68.873, "municipality": "Capital" },
+        { "lat": -32.874, "lng": -68.871, "municipality": "Capital" }
+      ]
+    },
+    {
+      "id": "hijuela-chachingo",
+      "name": "Hijuela Chachingo - Cruz de Piedra",
+      "description": "Hijuela vitivinícola clave del sur de Maipú que distribuye agua de deshielo entre Lunlunta, Cruz de Piedra y Chachingo.",
+      "nominalFlowM3s": 4.8,
+      "vertices": [
+        { "lat": -33.008, "lng": -68.821, "municipality": "Maipú" },
+        { "lat": -33.019, "lng": -68.802, "municipality": "Maipú" },
+        { "lat": -33.028, "lng": -68.781, "municipality": "Maipú" },
+        { "lat": -33.036, "lng": -68.758, "municipality": "Maipú" },
+        { "lat": -33.043, "lng": -68.734, "municipality": "Maipú" }
+      ]
+    },
+    {
+      "id": "hijuela-algarrobal",
+      "name": "Hijuela El Plumerillo - Algarrobal",
+      "description": "Rama norte derivada del Cacique Guaymallén que abastece chacras y fincas de El Plumerillo y El Algarrobal en Las Heras.",
+      "nominalFlowM3s": 4.2,
+      "vertices": [
+        { "lat": -32.848, "lng": -68.822, "municipality": "Las Heras" },
+        { "lat": -32.839, "lng": -68.803, "municipality": "Las Heras" },
+        { "lat": -32.831, "lng": -68.784, "municipality": "Las Heras" },
+        { "lat": -32.823, "lng": -68.765, "municipality": "Las Heras" },
+        { "lat": -32.815, "lng": -68.748, "municipality": "Las Heras" }
+      ]
+    }
+  ],
+  "anomalies": [
+    { "canalId": "cacique-guaymallen", "segment": 2, "t": 0.5, "mndwi": 0.47 },
+    { "canalId": "cacique-guaymallen", "segment": 7, "t": 0.35, "mndwi": 0.33 },
+    { "canalId": "zanjon-frias", "segment": 2, "t": 0.6, "mndwi": 0.24 },
+    { "canalId": "matriz-san-martin", "segment": 3, "t": 0.4, "mndwi": 0.44 },
+    { "canalId": "canal-pescara", "segment": 2, "t": 0.5, "mndwi": 0.41 },
+    { "canalId": "canal-villanueva", "segment": 1, "t": 0.55, "mndwi": 0.31 },
+    { "canalId": "canal-san-eduardo", "segment": 2, "t": 0.45, "mndwi": 0.23 },
+    { "canalId": "canal-compuertas", "segment": 1, "t": 0.5, "mndwi": 0.35 },
+    { "canalId": "hijuela-chachingo", "segment": 2, "t": 0.4, "mndwi": 0.26 },
+    { "canalId": "hijuela-algarrobal", "segment": 1, "t": 0.65, "mndwi": 0.32 }
+  ]
+}

@@ -1,0 +1,306 @@
+/* ==========================================================================
+   AppLayout — Diseño Mobile-First con menú colapsable (drawer + barra inferior)
+   y barra lateral fija en pantallas de escritorio (>= 960px).
+   ========================================================================== */
+.app-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-height: 100vh;
+}
+
+/* ---------- Sidebar / Drawer móvil ---------- */
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1090;
+  background-color: rgba(2, 6, 23, 0.55);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-fast);
+}
+
+.sidebar-backdrop--open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  width: var(--sidebar-width);
+  max-width: 82vw;
+  padding: var(--space-5) var(--space-4);
+  background: linear-gradient(180deg, var(--surface-sidebar) 0%, var(--surface-sidebar-end) 100%);
+  color: var(--text-on-dark);
+  transform: translateX(-102%);
+  transition: transform 200ms ease;
+  box-shadow: var(--shadow-md);
+}
+
+.sidebar--open {
+  transform: translateX(0);
+}
+
+.sidebar__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-2);
+}
+
+.sidebar__logo {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, #06b6d4, #2563eb);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: #ffffff;
+}
+
+.sidebar__name {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.25;
+  color: #ffffff;
+}
+
+.sidebar__region {
+  font-size: var(--font-size-xs);
+  color: #22d3ee;
+}
+
+.sidebar__close {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--radius-sm);
+  background-color: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+  font-size: var(--font-size-md);
+}
+
+.sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.sidebar__link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  color: var(--text-on-dark);
+  opacity: 0.84;
+  transition:
+    background-color var(--transition-fast),
+    opacity var(--transition-fast);
+}
+
+.sidebar__link:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  opacity: 1;
+}
+
+.sidebar__link--active {
+  background-color: rgba(34, 211, 238, 0.16);
+  color: #67e8f9;
+  font-weight: var(--font-weight-medium);
+  opacity: 1;
+}
+
+.sidebar__link-icon {
+  width: 20px;
+  text-align: center;
+}
+
+.sidebar__footer {
+  margin-top: auto;
+  padding: 0 var(--space-2);
+  font-size: var(--font-size-xs);
+  color: #94a3b8;
+}
+
+/* ---------- Contenedor principal ---------- */
+.main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding-bottom: var(--bottom-nav-height);
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: var(--header-height);
+  padding: var(--space-2) var(--space-4);
+  background-color: var(--surface-card);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.header__left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.header__menu-btn {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-subtle);
+  color: var(--text-primary);
+  font-size: var(--font-size-lg);
+}
+
+.header__titles {
+  min-width: 0;
+}
+
+.header__title {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-heading);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header__subtitle {
+  display: none;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+.header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.content {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  padding: var(--space-4);
+}
+
+/* ---------- Barra inferior móvil ---------- */
+.bottom-nav {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1000;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  height: var(--bottom-nav-height);
+  background-color: var(--surface-card);
+  border-top: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-md);
+}
+
+.bottom-nav__link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 0.7rem;
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+}
+
+.bottom-nav__link--active {
+  color: var(--color-accent-500);
+  font-weight: var(--font-weight-bold);
+}
+
+.bottom-nav__icon {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+/* ---------- Pantallas medianas y de escritorio (>= 960px) ---------- */
+@media (min-width: 960px) {
+  .app-layout {
+    grid-template-columns: var(--sidebar-width) 1fr;
+  }
+
+  .sidebar-backdrop {
+    display: none;
+  }
+
+  .sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    max-width: none;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .sidebar__close {
+    display: none;
+  }
+
+  .main {
+    padding-bottom: 0;
+  }
+
+  .header {
+    padding: 0 var(--space-6);
+  }
+
+  .header__menu-btn {
+    display: none;
+  }
+
+  .header__title {
+    font-size: var(--font-size-lg);
+  }
+
+  .header__subtitle {
+    display: block;
+  }
+
+  .content {
+    padding: var(--space-6);
+  }
+
+  .bottom-nav {
+    display: none;
+  }
+}

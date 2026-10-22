@@ -1,0 +1,103 @@
+.dropzone-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-6) var(--space-4);
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  background-color: var(--bg-subtle);
+  text-align: center;
+  cursor: pointer;
+  transition:
+    border-color var(--transition-fast),
+    background-color var(--transition-fast);
+}
+
+.dropzone:hover,
+.dropzone--active {
+  border-color: var(--color-accent-500);
+  background-color: var(--color-accent-100);
+}
+
+.dropzone__input {
+  display: none;
+}
+
+.dropzone__icon {
+  font-size: 2.25rem;
+  line-height: 1;
+}
+
+.dropzone__title {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-heading);
+}
+
+.dropzone__hint {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+.samples {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.samples__label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+}
+
+.samples__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-2);
+}
+
+.sample-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-input);
+  text-align: left;
+  transition:
+    border-color var(--transition-fast),
+    background-color var(--transition-fast);
+}
+
+.sample-btn:hover:not(:disabled) {
+  border-color: var(--color-accent-500);
+  background-color: var(--surface-hover);
+}
+
+.sample-btn__title {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-heading);
+}
+
+.sample-btn__subtitle {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+@media (min-width: 640px) {
+  .samples__grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

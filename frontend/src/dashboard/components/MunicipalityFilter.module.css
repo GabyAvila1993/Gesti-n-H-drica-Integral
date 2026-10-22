@@ -1,0 +1,16 @@
+.filter-bar {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--surface-card);
+  box-shadow: var(--shadow-sm);
+}
+
+@media (min-width: 720px) {
+  .filter-bar {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

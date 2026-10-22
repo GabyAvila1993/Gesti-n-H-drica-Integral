@@ -1,0 +1,176 @@
+/* ==========================================================================
+   DetectionViewer — Visor de imagen con bounding boxes en <div> posicionados.
+   REGLA DE ARQUITECTURA:
+   - La geometría espacial (top, left, width, height en %) se inyecta en línea.
+   - Todo el diseño visual (colores por tipo de residuo, grosores, opacidad,
+     hover y tooltip) se define aquí en CSS puro.
+   ========================================================================== */
+.viewer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.viewer__stage {
+  position: relative;
+  width: 100%;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background-color: #0b192c;
+  border: 1px solid var(--border-subtle);
+  user-select: none;
+}
+
+.viewer__image {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 520px;
+  object-fit: fill;
+}
+
+/* ---------- Bounding Box (superpuesto con position: absolute) ---------- */
+.detection-box {
+  position: absolute;
+  z-index: 10;
+  border-width: 2.5px;
+  border-style: solid;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast),
+    background-color var(--transition-fast);
+}
+
+/* Colores según el tipo de objeto detectado */
+.detection-box--plastic {
+  border-color: #22d3ee;
+  background-color: rgba(34, 211, 238, 0.18);
+  box-shadow: 0 0 0 1px rgba(11, 37, 69, 0.55);
+}
+
+.detection-box--branch {
+  border-color: #fb923c;
+  background-color: rgba(251, 146, 60, 0.2);
+  box-shadow: 0 0 0 1px rgba(11, 37, 69, 0.55);
+}
+
+.detection-box--debris {
+  border-color: #f87171;
+  background-color: rgba(248, 113, 113, 0.22);
+  box-shadow: 0 0 0 1px rgba(11, 37, 69, 0.55);
+}
+
+.detection-box:hover,
+.detection-box--active {
+  z-index: 30;
+  border-width: 3px;
+  transform: scale(1.015);
+}
+
+.detection-box--plastic:hover,
+.detection-box--plastic.detection-box--active {
+  background-color: rgba(34, 211, 238, 0.34);
+  box-shadow: 0 0 14px rgba(34, 211, 238, 0.65);
+}
+
+.detection-box--branch:hover,
+.detection-box--branch.detection-box--active {
+  background-color: rgba(251, 146, 60, 0.36);
+  box-shadow: 0 0 14px rgba(251, 146, 60, 0.65);
+}
+
+.detection-box--debris:hover,
+.detection-box--debris.detection-box--active {
+  background-color: rgba(248, 113, 113, 0.38);
+  box-shadow: 0 0 14px rgba(248, 113, 113, 0.7);
+}
+
+/* Etiqueta compacta en la esquina del recuadro */
+.detection-box__badge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background-color: rgba(11, 37, 69, 0.86);
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: var(--font-weight-bold);
+  pointer-events: none;
+}
+
+/* ---------- Tooltip flotante (activado con onMouseEnter / onMouseLeave) ---------- */
+.detection-tooltip {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 6px);
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  background-color: #0b2545;
+  border: 1px solid #22d3ee;
+  color: #ffffff;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+  box-shadow: var(--shadow-md);
+  pointer-events: none;
+}
+
+.detection-tooltip__confidence {
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  background-color: rgba(34, 211, 238, 0.22);
+  color: #67e8f9;
+}
+
+/* ---------- Leyenda de colores de objetos ---------- */
+.viewer__legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+.viewer__legend-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.viewer__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.viewer__swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border-width: 2px;
+  border-style: solid;
+}
+
+.viewer__swatch--plastic {
+  border-color: #22d3ee;
+  background-color: rgba(34, 211, 238, 0.3);
+}
+
+.viewer__swatch--branch {
+  border-color: #fb923c;
+  background-color: rgba(251, 146, 60, 0.3);
+}
+
+.viewer__swatch--debris {
+  border-color: #f87171;
+  background-color: rgba(248, 113, 113, 0.3);
+}

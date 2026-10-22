@@ -1,0 +1,71 @@
+.detail-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.detail-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.detail-card__source {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-accent-500);
+}
+
+.detail-card__title {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-heading);
+}
+
+.detail-card__municipality {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+.detail-card__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-2);
+}
+
+.detail-card__box {
+  padding: var(--space-3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-subtle);
+}
+
+.detail-card__label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.detail-card__value {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+}
+
+.detail-card__description {
+  padding: var(--space-3);
+  border-left: 3px solid var(--color-accent-500);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-subtle);
+  font-size: var(--font-size-xs);
+  color: var(--text-primary);
+}
+
+.detail-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}

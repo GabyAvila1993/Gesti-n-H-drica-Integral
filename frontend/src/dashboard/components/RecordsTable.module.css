@@ -1,0 +1,102 @@
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.records-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.records-table th,
+.records-table td {
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.records-table th {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  background-color: var(--bg-subtle);
+}
+
+.records-table__row {
+  transition: background-color var(--transition-fast);
+}
+
+.records-table__row:hover {
+  background-color: var(--surface-hover);
+}
+
+.records-table__row--selected {
+  background-color: var(--color-accent-100);
+}
+
+.records-table__source {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-heading);
+}
+
+.records-table__title {
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+}
+
+.records-table__metric {
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  font-size: var(--font-size-xs);
+  color: var(--text-primary);
+}
+
+.records-table__date {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .records-table thead {
+    display: none;
+  }
+
+  .records-table,
+  .records-table tbody,
+  .records-table tr,
+  .records-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .records-table__row {
+    padding: var(--space-3);
+    margin-bottom: var(--space-3);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background-color: var(--bg-subtle);
+  }
+
+  .records-table td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding: var(--space-1) 0;
+    border-bottom: none;
+  }
+
+  .records-table td::before {
+    content: attr(data-label);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-bold);
+    color: var(--text-secondary);
+  }
+}

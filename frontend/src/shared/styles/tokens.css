@@ -1,0 +1,140 @@
+/* ==========================================================================
+   Design tokens — Gestión Hídrica Integral
+   Paleta: azules profundos, cian hídrico, grises neutros y semáforo de riesgo.
+   Soporta Modo Claro (por defecto) y Modo Oscuro ([data-theme="dark"]).
+   ========================================================================== */
+:root,
+[data-theme='light'] {
+  /* Marca */
+  --color-primary-900: #0b2545;
+  --color-primary-800: #13315c;
+  --color-primary-700: #1d4e89;
+  --color-primary-600: #2563eb;
+  --color-accent-500: #06b6d4;
+  --color-accent-400: #22d3ee;
+  --color-accent-100: #cffafe;
+
+  /* Neutros */
+  --color-gray-900: #0f172a;
+  --color-gray-700: #334155;
+  --color-gray-500: #64748b;
+  --color-gray-300: #cbd5e1;
+  --color-gray-200: #e2e8f0;
+  --color-gray-100: #f1f5f9;
+  --color-gray-50: #f8fafc;
+  --color-white: #ffffff;
+
+  /* Semáforo de riesgo */
+  --risk-normal: #0ea5e9;
+  --risk-low: #16a34a;
+  --risk-low-bg: #dcfce7;
+  --risk-medium: #ea580c;
+  --risk-medium-bg: #ffedd5;
+  --risk-critical: #dc2626;
+  --risk-critical-bg: #fee2e2;
+
+  /* Variables semánticas de tema (Modo Claro) */
+  --bg-main: #f1f5f9;
+  --bg-elevated: #ffffff;
+  --bg-subtle: #f8fafc;
+  --surface-app: var(--bg-main);
+  --surface-card: var(--bg-elevated);
+  --surface-sidebar: #0b2545;
+  --surface-sidebar-end: #13315c;
+  --surface-input: #ffffff;
+  --surface-hover: #f1f5f9;
+  --surface-overlay: rgba(255, 255, 255, 0.94);
+
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --text-heading: #0b2545;
+  --text-on-dark: #e2e8f0;
+
+  --border-subtle: #e2e8f0;
+  --border-strong: #cbd5e1;
+
+  /* Tipografía */
+  --font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.25rem;
+  --font-size-xl: 1.5rem;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+
+  /* Espaciado */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+
+  /* Formas y efectos */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 16px rgba(15, 23, 42, 0.08);
+  --transition-fast: 150ms ease;
+
+  /* Layout */
+  --sidebar-width: 248px;
+  --header-height: 64px;
+  --bottom-nav-height: 62px;
+}
+
+/* ==========================================================================
+   Paleta Modo Oscuro — Hídrico Nocturno
+   ========================================================================== */
+[data-theme='dark'] {
+  --color-primary-900: #e0f2fe;
+  --color-primary-800: #bae6fd;
+  --color-primary-700: #0284c7;
+  --color-primary-600: #38bdf8;
+  --color-accent-500: #22d3ee;
+  --color-accent-400: #67e8f9;
+  --color-accent-100: rgba(34, 211, 238, 0.16);
+
+  --color-gray-900: #f1f5f9;
+  --color-gray-700: #cbd5e1;
+  --color-gray-500: #94a3b8;
+  --color-gray-300: #334155;
+  --color-gray-200: #1e293b;
+  --color-gray-100: #0f1e36;
+  --color-gray-50: #132542;
+
+  /* Semáforo adaptado para alto contraste sobre fondo oscuro */
+  --risk-normal: #38bdf8;
+  --risk-low: #4ade80;
+  --risk-low-bg: rgba(34, 197, 94, 0.18);
+  --risk-medium: #fb923c;
+  --risk-medium-bg: rgba(249, 115, 22, 0.2);
+  --risk-critical: #f87171;
+  --risk-critical-bg: rgba(239, 68, 68, 0.22);
+
+  --bg-main: #071120;
+  --bg-elevated: #0f1e36;
+  --bg-subtle: #132542;
+  --surface-app: var(--bg-main);
+  --surface-card: var(--bg-elevated);
+  --surface-sidebar: #050c18;
+  --surface-sidebar-end: #0a182e;
+  --surface-input: #132542;
+  --surface-hover: #183054;
+  --surface-overlay: rgba(15, 30, 54, 0.94);
+
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-heading: #e0f2fe;
+  --text-on-dark: #e2e8f0;
+
+  --border-subtle: #1e3557;
+  --border-strong: #2d4d7c;
+
+  --shadow-sm: 0 2px 6px rgba(2, 6, 23, 0.45);
+  --shadow-md: 0 8px 24px rgba(2, 6, 23, 0.6);
+}

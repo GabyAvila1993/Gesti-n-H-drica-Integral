@@ -1,0 +1,74 @@
+.metric-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border: 1px solid var(--border-subtle);
+  border-left-width: 4px;
+  border-radius: var(--radius-lg);
+  background-color: var(--surface-card);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-fast);
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+}
+
+.metric-card--info {
+  border-left-color: var(--color-accent-500);
+}
+
+.metric-card--warning {
+  border-left-color: var(--risk-medium);
+}
+
+.metric-card--critical {
+  border-left-color: var(--risk-critical);
+}
+
+.metric-card--low {
+  border-left-color: var(--risk-low);
+}
+
+.metric-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.metric-card__label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.metric-card__icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-subtle);
+  font-size: 1.25rem;
+}
+
+.metric-card__value {
+  font-size: 2rem;
+  font-weight: var(--font-weight-bold);
+  line-height: 1.05;
+  color: var(--text-heading);
+}
+
+.metric-card--critical .metric-card__value {
+  color: var(--risk-critical);
+}
+
+.metric-card__subtitle {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}

@@ -1,0 +1,50 @@
+{
+  "id": "/",
+  "name": "Gestión Hídrica Integral — Mendoza",
+  "short_name": "Gestión Hídrica",
+  "description": "Plataforma de monitoreo satelital de canales y prevención de desbordes en acequias urbanas de Mendoza, Argentina.",
+  "lang": "es-AR",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b2545",
+  "theme_color": "#0b2545",
+  "categories": ["utilities", "government", "weather"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/pwa-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Monitoreo Satelital",
+      "short_name": "Satelital",
+      "description": "Ver mapa de canales y alertas MNDWI",
+      "url": "/monitoreo-satelital",
+      "icons": [{ "src": "/pwa-192.svg", "sizes": "192x192", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Acequias Urbanas",
+      "short_name": "Acequias",
+      "description": "Analizar foto de acequia con IA",
+      "url": "/acequias-urbanas",
+      "icons": [{ "src": "/pwa-192.svg", "sizes": "192x192", "type": "image/svg+xml" }]
+    }
+  ]
+}

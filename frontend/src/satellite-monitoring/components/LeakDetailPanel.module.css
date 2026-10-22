@@ -1,0 +1,66 @@
+.leak-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.leak-detail__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.leak-detail__canal {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-heading);
+}
+
+.leak-detail__municipality {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.leak-detail__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
+}
+
+.leak-detail__field {
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+}
+
+.leak-detail__label {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.leak-detail__value {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.leak-detail__value--mono {
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  font-size: var(--font-size-xs);
+}
+
+.leak-detail__hint {
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+@media (max-width: 480px) {
+  .leak-detail__grid {
+    grid-template-columns: 1fr;
+  }
+}

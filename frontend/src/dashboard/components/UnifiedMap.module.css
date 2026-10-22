@@ -1,0 +1,107 @@
+.unified-map {
+  position: relative;
+  width: 100%;
+  min-height: 400px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+/* Marcadores de fuga satelital (círculo sólido con borde blanco) */
+.sat-pin {
+  stroke: #ffffff;
+  stroke-width: 2.5;
+  fill-opacity: 0.9;
+  cursor: pointer;
+}
+
+/* Pines de acequias urbanas obstruidas (borde doble azul oscuro / cian distintivo) */
+.urban-pin {
+  stroke: #0b2545;
+  stroke-width: 3.5;
+  stroke-dasharray: 4 2;
+  fill-opacity: 0.92;
+  cursor: pointer;
+}
+
+.pin--low {
+  fill: var(--risk-low);
+}
+
+.pin--medium {
+  fill: var(--risk-medium);
+}
+
+.pin--critical {
+  fill: var(--risk-critical);
+}
+
+.pin--selected {
+  stroke: var(--color-accent-400);
+  stroke-width: 4.5;
+  stroke-dasharray: none;
+}
+
+.pin-tooltip {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Leyenda unificada del mapa */
+.legend {
+  position: absolute;
+  left: var(--space-3);
+  bottom: var(--space-3);
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-overlay);
+  box-shadow: var(--shadow-md);
+  font-size: var(--font-size-xs);
+  color: var(--text-primary);
+}
+
+.legend__title {
+  font-weight: var(--font-weight-bold);
+  color: var(--text-heading);
+}
+
+.legend__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.legend__line {
+  width: 18px;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background-color: var(--risk-normal);
+}
+
+.legend__dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.legend__dot--sat {
+  background-color: var(--risk-critical);
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 1px var(--border-strong);
+}
+
+.legend__dot--urban {
+  background-color: var(--risk-medium);
+  border: 2px dashed #0b2545;
+}
+
+@media (min-width: 1080px) {
+  .unified-map {
+    min-height: 480px;
+  }
+}

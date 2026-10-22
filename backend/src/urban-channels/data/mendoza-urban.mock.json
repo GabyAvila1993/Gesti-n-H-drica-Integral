@@ -1,0 +1,152 @@
+{
+  "municipalityCenters": {
+    "Capital": { "lat": -32.8895, "lng": -68.8458 },
+    "Godoy Cruz": { "lat": -32.9253, "lng": -68.8444 },
+    "Guaymallén": { "lat": -32.8988, "lng": -68.8172 },
+    "Las Heras": { "lat": -32.8528, "lng": -68.8286 },
+    "Luján de Cuyo": { "lat": -33.0055, "lng": -68.8778 },
+    "Maipú": { "lat": -32.9772, "lng": -68.7885 }
+  },
+  "visionScenarios": {
+    "critico": [
+      {
+        "id": "det-crit-1",
+        "label": "Rama caída de plátano",
+        "category": "branch",
+        "confidence": 96,
+        "bbox": { "top": 22, "left": 10, "width": 44, "height": 28 }
+      },
+      {
+        "id": "det-crit-2",
+        "label": "Botella PET aplastada",
+        "category": "plastic",
+        "confidence": 98,
+        "bbox": { "top": 34, "left": 56, "width": 18, "height": 16 }
+      },
+      {
+        "id": "det-crit-3",
+        "label": "Bolsa de polietileno trabada en puente",
+        "category": "plastic",
+        "confidence": 91,
+        "bbox": { "top": 54, "left": 18, "width": 24, "height": 19 }
+      },
+      {
+        "id": "det-crit-4",
+        "label": "Escombro de hormigón y ripio",
+        "category": "debris",
+        "confidence": 94,
+        "bbox": { "top": 52, "left": 48, "width": 32, "height": 26 }
+      }
+    ],
+    "medio": [
+      {
+        "id": "det-med-1",
+        "label": "Acumulación de hojas y poda",
+        "category": "branch",
+        "confidence": 93,
+        "bbox": { "top": 28, "left": 16, "width": 32, "height": 22 }
+      },
+      {
+        "id": "det-med-2",
+        "label": "Envase plástico descartable",
+        "category": "plastic",
+        "confidence": 89,
+        "bbox": { "top": 46, "left": 54, "width": 20, "height": 15 }
+      },
+      {
+        "id": "det-med-3",
+        "label": "Sedimento y cascotes",
+        "category": "debris",
+        "confidence": 87,
+        "bbox": { "top": 60, "left": 26, "width": 22, "height": 14 }
+      }
+    ],
+    "bajo": [
+      {
+        "id": "det-low-1",
+        "label": "Botella PET flotante",
+        "category": "plastic",
+        "confidence": 95,
+        "bbox": { "top": 38, "left": 24, "width": 16, "height": 14 }
+      },
+      {
+        "id": "det-low-2",
+        "label": "Rama menor en talud",
+        "category": "branch",
+        "confidence": 86,
+        "bbox": { "top": 56, "left": 60, "width": 18, "height": 12 }
+      }
+    ]
+  },
+  "initialAlerts": [
+    {
+      "id": "urb-seed-1",
+      "analysisId": "seed-analysis-1",
+      "municipality": "Capital",
+      "address": "Av. Emilio Civit y Belgrano (Rejilla sifón norte)",
+      "obstructionPercentage": 79,
+      "riskLevel": "CRITICO",
+      "detectionsCount": 4,
+      "scenarioKey": "critico",
+      "notes": "Puente vehicular tapado tras viento Zonda.",
+      "minutesAgo": 45,
+      "lat": -32.8884,
+      "lng": -68.8562
+    },
+    {
+      "id": "urb-seed-2",
+      "analysisId": "seed-analysis-2",
+      "municipality": "Godoy Cruz",
+      "address": "San Martín Sur y Paso de los Andes",
+      "obstructionPercentage": 35,
+      "riskLevel": "MEDIO",
+      "detectionsCount": 3,
+      "scenarioKey": "medio",
+      "notes": "Rejilla con retención parcial de hojas de plátano.",
+      "minutesAgo": 120,
+      "lat": -32.9278,
+      "lng": -68.8471
+    },
+    {
+      "id": "urb-seed-3",
+      "analysisId": "seed-analysis-3",
+      "municipality": "Guaymallén",
+      "address": "Bandera de los Andes y Urquiza (Villa Nueva)",
+      "obstructionPercentage": 74,
+      "riskLevel": "CRITICO",
+      "detectionsCount": 4,
+      "scenarioKey": "critico",
+      "notes": "Acumulación de bolsas y ramas en cruce de alcantarilla.",
+      "minutesAgo": 185,
+      "lat": -32.8995,
+      "lng": -68.8095
+    },
+    {
+      "id": "urb-seed-4",
+      "analysisId": "seed-analysis-4",
+      "municipality": "Las Heras",
+      "address": "Av. San Martín y Roca (Panquehua)",
+      "obstructionPercentage": 41,
+      "riskLevel": "MEDIO",
+      "detectionsCount": 3,
+      "scenarioKey": "medio",
+      "notes": "Escombros menores y envases en sifón.",
+      "minutesAgo": 260,
+      "lat": -32.8495,
+      "lng": -68.8365
+    },
+    {
+      "id": "urb-seed-5",
+      "analysisId": "seed-analysis-5",
+      "municipality": "Maipú",
+      "address": "Calle Ozamis y Maza",
+      "obstructionPercentage": 11,
+      "riskLevel": "BAJO",
+      "detectionsCount": 2,
+      "scenarioKey": "bajo",
+      "minutesAgo": 340,
+      "lat": -32.9765,
+      "lng": -68.7865
+    }
+  ]
+}

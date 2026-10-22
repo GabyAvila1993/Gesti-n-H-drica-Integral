@@ -1,0 +1,27 @@
+# Documento de planificación interno (nunca se sube al repositorio)
+PLAN_IMPLEMENTACION_v2.md
+
+# Dependencias
+node_modules/
+
+# Builds
+dist/
+dist-test/
+build/
+coverage/
+
+# Variables de entorno (solo se versionan los .env.example)
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor / SO
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
