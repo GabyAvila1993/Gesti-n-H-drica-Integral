@@ -66,3 +66,4 @@ frontend/src/
 - Umbrales MNDWI: `MNDWI_LEAK_THRESHOLD`, `MNDWI_MEDIUM_THRESHOLD`, `MNDWI_CRITICAL_THRESHOLD`.
 
 > Las trazas de canales (Cacique Guaymallén, Zanjón Frías, Matriz San Martín) son aproximaciones de recorridos reales para el prototipo, no cartografía oficial.
+probando estilos
