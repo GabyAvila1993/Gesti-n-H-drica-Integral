@@ -10,7 +10,7 @@ export const GEMINI_SYSTEM_PROMPT =
   'Eres un inspector municipal experto en riesgo hídrico. Analiza esta imagen de una acequia de Mendoza. Devuelve EXCLUSIVAMENTE un JSON con: { "obstructionPercentage": número, "riskLevel": \'BAJO\'|\'MEDIO\'|\'CRITICO\', "detectedItems": [{ "type": "Plásticos"|"Ramas"|"Escombros", "description": string, "boundingBox": { "top": %, "left": %, "width": %, "height": % } }], "notes": string }.';
 
 const logger = new Logger('PixelVisionAnalyzer');
-const GEMINI_TIMEOUT_MS = 7000;
+const GEMINI_TIMEOUT_MS = 15000;
 
 export interface GeminiRawResponse {
   obstructionPercentage?: number;
@@ -78,11 +78,10 @@ export async function analyzeImageWithGemini(
       try {
         result = await Promise.race([
           model.generateContent([
-            GEMINI_SYSTEM_PROMPT,
             {
               inlineData: {
                 data: buffer.toString('base64'),
-                mimeType: mimetype === 'image/svg+xml' ? 'image/png' : mimetype,
+                mimeType: mimetype,
               },
             },
           ]),
@@ -99,8 +98,7 @@ export async function analyzeImageWithGemini(
 
       const rawText = result.response.text().trim();
       const cleanJson = rawText
-        .replace(/^```json\s*/i, '')
-        .replace(/^```\s*/i, '')
+        .replace(/^```(?:json)?\s*/i, '')
         .replace(/\s*```$/, '')
         .trim();
 
@@ -145,6 +143,7 @@ export async function analyzeImageWithGemini(
         providerName: 'gemini-1.5-flash',
       };
     } catch (error) {
+      console.error('Error en Gemini API:', error);
       logger.warn(
         `Gemini no disponible; se usará el análisis local. ${error instanceof Error ? error.message : 'Error desconocido.'}`,
       );
