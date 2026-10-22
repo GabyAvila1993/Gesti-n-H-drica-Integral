@@ -39,5 +39,7 @@ export interface UrbanAlert {
   status: 'PENDING' | 'RESOLVED';
   createdAt: string;
   resolvedAt?: string;
+  evidenceBeforeUrl?: string;
+  evidenceAfterUrl?: string;
   location: GeoJsonPoint;
 }

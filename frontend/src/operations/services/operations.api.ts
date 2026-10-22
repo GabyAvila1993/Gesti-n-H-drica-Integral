@@ -1,4 +1,4 @@
-import { httpGet, httpPatch, httpPost } from '../../shared/api/http-client';
+import { httpGet, httpPost, httpPostMultipart } from '../../shared/api/http-client';
 import type {
   CrewTacticalOverview,
   LoginResponse,
@@ -13,6 +13,13 @@ export interface CreateStaffUserInput {
   password: string;
   role: 'ENCARGADO' | 'CUADRILLA';
   fullName?: string;
+}
+
+export interface ResolveCrewTaskInput {
+  alertId: string;
+  evidenceBefore: File;
+  evidenceAfter: File;
+  resolutionNotes?: string;
 }
 
 export const operationsApi = {
@@ -47,11 +54,12 @@ export const operationsApi = {
 
   getManagerOverview(
     token: string,
-    radiusMeters: number,
+    epsMeters?: number,
     signal?: AbortSignal,
   ): Promise<ManagerStrategicOverview> {
+    const query = epsMeters ? `?radiusMeters=${epsMeters}` : '';
     return httpGet<ManagerStrategicOverview>(
-      `/operations/manager/overview?radiusMeters=${radiusMeters}`,
+      `/operations/manager/overview${query}`,
       signal,
       token,
     );
@@ -77,13 +85,25 @@ export const operationsApi = {
 
   resolveCrewTask(
     token: string,
-    alertId: string,
-    resolutionNotes?: string,
+    input: ResolveCrewTaskInput,
     signal?: AbortSignal,
-  ): Promise<{ alertId: string; status: 'RESOLVED'; resolvedAt: string }> {
-    return httpPatch<{ alertId: string; status: 'RESOLVED'; resolvedAt: string }>(
-      `/operations/crew/tasks/${encodeURIComponent(alertId)}/resolve`,
-      { resolutionNotes },
+  ): Promise<{
+    alertId: string;
+    status: 'RESOLVED';
+    resolvedAt: string;
+    evidenceBeforeUrl: string;
+    evidenceAfterUrl: string;
+  }> {
+    const formData = new FormData();
+    formData.append('evidenceBefore', input.evidenceBefore);
+    formData.append('evidenceAfter', input.evidenceAfter);
+    if (input.resolutionNotes && input.resolutionNotes.trim().length > 0) {
+      formData.append('resolutionNotes', input.resolutionNotes.trim());
+    }
+
+    return httpPostMultipart(
+      `/operations/crew/tasks/${encodeURIComponent(input.alertId)}/resolve`,
+      formData,
       signal,
       token,
     );

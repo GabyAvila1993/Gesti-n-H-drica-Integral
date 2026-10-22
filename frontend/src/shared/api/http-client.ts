@@ -176,17 +176,22 @@ export async function httpPatch<T, B = unknown>(
   );
 }
 
-/** Cliente HTTP POST Multipart (FormData) para subida de imágenes. */
+/** Cliente HTTP POST Multipart (FormData) para subida de imágenes (con Bearer token opcional). */
 export async function httpPostMultipart<T>(
   path: string,
   formData: FormData,
   signal?: AbortSignal,
+  token?: string,
 ): Promise<T> {
+  const headers: Record<string, string> = { Accept: 'application/json' };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
   return executeFetch<T>(
     path,
     {
       method: 'POST',
-      headers: { Accept: 'application/json' },
+      headers,
       body: formData,
     },
     signal,

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Circle, CircleMarker, Popup, Tooltip, useMap, useMapEvents } from 'react-leaflet';
+import { Circle, CircleMarker, Polygon, Popup, Tooltip, useMap } from 'react-leaflet';
 import { ApiError } from '../../shared/api/http-client';
 import { BaseMap } from '../../shared/map/BaseMap';
 import { Button } from '../../shared/ui/Button/Button';
@@ -32,26 +32,7 @@ function MapCoordinateFocus({
   return null;
 }
 
-function ZoomClusterWatcher({
-  autoMode,
-  onRadiusChange,
-}: {
-  autoMode: boolean;
-  onRadiusChange: (radius: number) => void;
-}) {
-  useMapEvents({
-    zoomend(event) {
-      if (!autoMode) return;
-      const zoom = event.target.getZoom();
-      onRadiusChange(zoom >= 14 ? 200 : 1000);
-    },
-  });
-  return null;
-}
-
 export function ManagerStrategicView({ token, currentUser }: ManagerStrategicViewProps) {
-  const [radiusMode, setRadiusMode] = useState<'auto' | '1000' | '200'>('auto');
-  const [radiusMeters, setRadiusMeters] = useState<number>(1000);
   const [overview, setOverview] = useState<ManagerStrategicOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,38 +42,29 @@ export function ManagerStrategicView({ token, currentUser }: ManagerStrategicVie
   const [assigningAlertId, setAssigningAlertId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  const loadStrategicData = useCallback(
-    async (targetRadius: number) => {
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await operationsApi.getManagerOverview(token, targetRadius);
-        setOverview(data);
-        if (data.alerts.length > 0 && !selectedAlertId) {
-          setSelectedAlertId(data.alerts[0].alert.id);
-        }
-      } catch (err) {
-        setError(
-          err instanceof ApiError
-            ? err.message
-            : 'No se pudo cargar el Mapa Estratégico del municipio.',
-        );
-      } finally {
-        setLoading(false);
+  const loadStrategicData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await operationsApi.getManagerOverview(token);
+      setOverview(data);
+      if (data.alerts.length > 0 && !selectedAlertId) {
+        setSelectedAlertId(data.alerts[0].alert.id);
       }
-    },
-    [token, selectedAlertId],
-  );
+    } catch (err) {
+      setError(
+        err instanceof ApiError
+          ? err.message
+          : 'No se pudo cargar el Mapa Estratégico del municipio.',
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [token, selectedAlertId]);
 
   useEffect(() => {
-    void loadStrategicData(radiusMeters);
-  }, [radiusMeters, loadStrategicData]);
-
-  const handleSelectRadiusMode = (mode: 'auto' | '1000' | '200') => {
-    setRadiusMode(mode);
-    if (mode === '1000') setRadiusMeters(1000);
-    if (mode === '200') setRadiusMeters(200);
-  };
+    void loadStrategicData();
+  }, [loadStrategicData]);
 
   const handleAssignCrew = async (alertId: string) => {
     if (!overview) return;
@@ -110,7 +82,7 @@ export function ManagerStrategicView({ token, currentUser }: ManagerStrategicVie
       setFeedback(
         `Reporte asignado a ${updated.crewName} (${updated.crewUsername}).`,
       );
-      await loadStrategicData(radiusMeters);
+      await loadStrategicData();
     } catch (err) {
       setFeedback(
         err instanceof ApiError ? err.message : 'No se pudo asignar la tarea a la cuadrilla.',
@@ -139,48 +111,23 @@ export function ManagerStrategicView({ token, currentUser }: ManagerStrategicVie
         <Card
           title={`Mapa Estratégico Municipal · ${currentUser.municipality}`}
           actions={
-            <div className={styles.radiusButtons}>
-              <Button
-                variant={radiusMode === 'auto' ? 'primary' : 'ghost'}
-                onClick={() => handleSelectRadiusMode('auto')}
-              >
-                Auto por Zoom ({radiusMeters} m)
-              </Button>
-              <Button
-                variant={radiusMode === '1000' ? 'primary' : 'ghost'}
-                onClick={() => handleSelectRadiusMode('1000')}
-              >
-                Radio 1 km
-              </Button>
-              <Button
-                variant={radiusMode === '200' ? 'primary' : 'ghost'}
-                onClick={() => handleSelectRadiusMode('200')}
-              >
-                Radio 200 m
-              </Button>
-            </div>
+            <Button variant="ghost" onClick={() => void loadStrategicData()}>
+              Recalcular Zonas de Trabajo
+            </Button>
           }
         >
           <div className={styles.mapToolbar}>
             <span className={styles.clusterLegend}>
-              🟢 Zona Crítica activa: {overview?.clusters.length ?? 0} agrupaciones detectadas (radio{' '}
-              {radiusMeters >= 1000 ? '1 km' : `${radiusMeters} m`})
+              🟢 Clustering Adaptativo (DBSCAN + Envolvente): {overview?.clusters.length ?? 0} Zonas
+              de Trabajo ajustadas a la distancia exacta entre alertas
             </span>
           </div>
 
           <div className={styles.mapBox}>
             <BaseMap>
-              <ZoomClusterWatcher
-                autoMode={radiusMode === 'auto'}
-                onRadiusChange={(nextRadius) => {
-                  if (nextRadius !== radiusMeters) {
-                    setRadiusMeters(nextRadius);
-                  }
-                }}
-              />
               <MapCoordinateFocus target={focusCoordinates} />
 
-              {/* Círculos verdes de Clustering Dinámico ("Zona Crítica") */}
+              {/* Envolvente Convexa (Convex Hull) y Círculo Envolvente Mínimo Adaptativo */}
               {overview?.clusters.map((cluster) => (
                 <Circle
                   key={cluster.id}
@@ -193,6 +140,16 @@ export function ManagerStrategicView({ token, currentUser }: ManagerStrategicVie
                   </Tooltip>
                 </Circle>
               ))}
+
+              {overview?.clusters
+                .filter((cluster) => cluster.convexHull.length >= 3)
+                .map((cluster) => (
+                  <Polygon
+                    key={`${cluster.id}-hull`}
+                    positions={cluster.convexHull}
+                    pathOptions={{ className: styles.convexHullPolygon }}
+                  />
+                ))}
 
               {/* Marcadores individuales de cada reporte en el municipio */}
               {overview?.alerts.map(({ alert, assignment }) => {
@@ -243,14 +200,14 @@ export function ManagerStrategicView({ token, currentUser }: ManagerStrategicVie
           )}
 
           {loading && !overview ? (
-            <Spinner label="Cargando reportes y zonas críticas del municipio…" />
+            <Spinner label="Cargando reportes y zonas de trabajo del municipio…" />
           ) : error ? (
             <EmptyState
               tone="error"
               icon="⚠️"
               title="No se pudieron cargar los reportes"
               description={error}
-              action={<Button onClick={() => void loadStrategicData(radiusMeters)}>Reintentar</Button>}
+              action={<Button onClick={() => void loadStrategicData()}>Reintentar</Button>}
             />
           ) : !overview || overview.alerts.length === 0 ? (
             <EmptyState

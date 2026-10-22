@@ -37,6 +37,8 @@ export interface TaskAssignmentRecord {
   readonly assignedAt: string;
   resolvedAt?: string;
   resolutionNotes?: string;
+  evidenceBeforeUrl?: string;
+  evidenceAfterUrl?: string;
 }
 
 export interface CriticalZoneCluster {
@@ -45,7 +47,12 @@ export interface CriticalZoneCluster {
     readonly lat: number;
     readonly lng: number;
   };
+  /** Radio exacto en metros del Círculo Envolvente Mínimo que abraza los puntos del cluster. */
   readonly radiusMeters: number;
+  /** Diámetro real en metros entre los reportes más distantes dentro de la Zona de Trabajo. */
+  readonly spanMeters: number;
+  /** Vértices [lat, lng] de la Envolvente Convexa (Convex Hull) de los puntos agrupados. */
+  readonly convexHull: Array<[number, number]>;
   readonly alertsCount: number;
   readonly criticalCount: number;
   readonly dominantRisk: UrbanRiskLevel;
@@ -81,7 +88,6 @@ export interface MunicipalOperationsStats {
 
 export interface ManagerStrategicOverview {
   readonly municipality: UrbanMunicipality;
-  readonly radiusMeters: number;
   readonly alerts: Array<{
     readonly alert: UrbanAlert;
     readonly assignment?: TaskAssignmentRecord;

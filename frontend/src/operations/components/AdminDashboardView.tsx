@@ -295,34 +295,66 @@ export function AdminDashboardView({ token, currentUser }: AdminDashboardViewPro
                   <th>Riesgo</th>
                   <th>Asignado por (Encargado)</th>
                   <th>Ejecutado por (Cuadrilla)</th>
+                  <th>Auditoría Fotográfica</th>
                   <th>Tiempo de resolución</th>
                   <th>Cierre (RESOLVED)</th>
                 </tr>
               </thead>
               <tbody>
-                {stats.resolvedHistory.map((item) => (
-                  <tr key={item.alert.id}>
-                    <td>
-                      <strong>{item.alert.address}</strong>
-                      {item.alert.notes && (
-                        <div className={styles.demoAccountSub}>{item.alert.notes}</div>
-                      )}
-                    </td>
-                    <td>
-                      <RiskBadge level={item.alert.riskLevel} />
-                    </td>
-                    <td>{item.assignment?.assignedByName ?? 'Supervisión Municipal'}</td>
-                    <td>{item.assignment?.crewName ?? 'Cuadrilla de Guardia'}</td>
-                    <td>
-                      <strong>{item.resolutionMinutes} min</strong>
-                    </td>
-                    <td>
-                      {item.alert.resolvedAt
-                        ? dateFormatter.format(new Date(item.alert.resolvedAt))
-                        : '—'}
-                    </td>
-                  </tr>
-                ))}
+                {stats.resolvedHistory.map((item) => {
+                  const beforeUrl =
+                    item.alert.evidenceBeforeUrl ?? item.assignment?.evidenceBeforeUrl;
+                  const afterUrl =
+                    item.alert.evidenceAfterUrl ?? item.assignment?.evidenceAfterUrl;
+
+                  return (
+                    <tr key={item.alert.id}>
+                      <td>
+                        <strong>{item.alert.address}</strong>
+                        {item.alert.notes && (
+                          <div className={styles.demoAccountSub}>{item.alert.notes}</div>
+                        )}
+                      </td>
+                      <td>
+                        <RiskBadge level={item.alert.riskLevel} />
+                      </td>
+                      <td>{item.assignment?.assignedByName ?? 'Supervisión Municipal'}</td>
+                      <td>{item.assignment?.crewName ?? 'Cuadrilla de Guardia'}</td>
+                      <td>
+                        {beforeUrl && afterUrl ? (
+                          <div className={styles.evidenceLinksCell}>
+                            <a
+                              href={beforeUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className={styles.evidenceLink}
+                            >
+                              📷 Foto Antes
+                            </a>
+                            <a
+                              href={afterUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className={styles.evidenceLink}
+                            >
+                              📷 Foto Después
+                            </a>
+                          </div>
+                        ) : (
+                          <span className={styles.demoAccountSub}>Registro previo</span>
+                        )}
+                      </td>
+                      <td>
+                        <strong>{item.resolutionMinutes} min</strong>
+                      </td>
+                      <td>
+                        {item.alert.resolvedAt
+                          ? dateFormatter.format(new Date(item.alert.resolvedAt))
+                          : '—'}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

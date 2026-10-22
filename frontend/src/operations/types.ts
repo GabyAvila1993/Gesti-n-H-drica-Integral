@@ -31,6 +31,8 @@ export interface TaskAssignmentRecord {
   assignedAt: string;
   resolvedAt?: string;
   resolutionNotes?: string;
+  evidenceBeforeUrl?: string;
+  evidenceAfterUrl?: string;
 }
 
 export interface CriticalZoneCluster {
@@ -40,6 +42,8 @@ export interface CriticalZoneCluster {
     lng: number;
   };
   radiusMeters: number;
+  spanMeters: number;
+  convexHull: Array<[number, number]>;
   alertsCount: number;
   criticalCount: number;
   dominantRisk: Severity;
@@ -75,7 +79,6 @@ export interface MunicipalOperationsStats {
 
 export interface ManagerStrategicOverview {
   municipality: Municipality;
-  radiusMeters: number;
   alerts: Array<{
     alert: UrbanAlert;
     assignment?: TaskAssignmentRecord;

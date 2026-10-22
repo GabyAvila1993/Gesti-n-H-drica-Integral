@@ -1,15 +1,22 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
+  Inject,
   Param,
   Patch,
   Post,
   Query,
+  UploadedFiles,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import {
   ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
   ApiCreatedResponse,
   ApiForbiddenResponse,
   ApiOkResponse,
@@ -17,7 +24,10 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { visionConfig, type VisionConfig } from '../core/config/app.config';
 import { UserRole } from '../core/database/entities/user.entity';
+import { validateUploadedImage } from '../core/security/image-upload.validator';
+import type { VisionImageInput } from '../urban-channels/providers/vision-provider.interface';
 import { OperationsService } from './application/operations.service';
 import type { AuthTokenPayload } from './domain/operations.types';
 import {
@@ -32,7 +42,10 @@ import { CurrentUser, JwtAuthGuard, Roles } from './security/jwt-rbac.guard';
 @ApiTags('Operativa Municipal y Roles (RBAC)')
 @Controller('operations')
 export class OperationsController {
-  constructor(private readonly service: OperationsService) {}
+  constructor(
+    private readonly service: OperationsService,
+    @Inject(visionConfig.KEY) private readonly config: VisionConfig,
+  ) {}
 
   @Get('demo-accounts')
   @ApiOperation({
@@ -105,7 +118,7 @@ export class OperationsController {
   @ApiOperation({
     summary: 'Obtener estadísticas históricas y eficiencia de cuadrillas (Rol ADMIN)',
     description:
-      'Calcula el tiempo medio de resolución, ranking de cuadrillas y registro histórico a partir de las alertas cerradas con Soft Delete (`status = RESOLVED`).',
+      'Calcula el tiempo medio de resolución, ranking de cuadrillas y registro histórico con evidencia fotográfica ("Antes" y "Después") a partir de las alertas cerradas con Soft Delete (`status = RESOLVED`).',
   })
   getAdminStats(@CurrentUser() admin: AuthTokenPayload) {
     return this.service.getAdminStats(admin);
@@ -116,18 +129,15 @@ export class OperationsController {
   @Roles(UserRole.ENCARGADO, UserRole.ADMIN)
   @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Mapa Estratégico y Clustering Dinámico de Zonas Críticas (Rol ENCARGADO)',
+    summary: 'Mapa Estratégico y Clustering Adaptativo DBSCAN de Zonas de Trabajo (Rol ENCARGADO)',
     description:
-      'Devuelve las alertas pendientes del municipio del Encargado, los clusters de Zona Crítica según el radio en metros (1000m o 200m) y las cuadrillas disponibles.',
+      'Devuelve las alertas pendientes del municipio del Encargado, los clusters de Zona de Trabajo adaptativos (con radio envolvente real y Convex Hull) y las cuadrillas disponibles.',
   })
   getManagerOverview(
     @CurrentUser() manager: AuthTokenPayload,
     @Query() query: ManagerAlertsQueryDto,
   ) {
-    return this.service.getManagerStrategicOverview(
-      manager,
-      query.radiusMeters ?? 1000,
-    );
+    return this.service.getManagerStrategicOverview(manager, query.radiusMeters);
   }
 
   @Post('manager/assignments')
@@ -153,26 +163,76 @@ export class OperationsController {
   @ApiOperation({
     summary: 'Mapa Táctico: listar tareas asignadas a la Cuadrilla (Rol CUADRILLA)',
     description:
-      'Devuelve las alertas asignadas específicamente a la cuadrilla autenticada para su navegación en terreno.',
+      'Devuelve las alertas asignadas específicamente a la cuadrilla autenticada para su navegación vial y auditoría fotográfica.',
   })
   getCrewTasks(@CurrentUser() crew: AuthTokenPayload) {
     return this.service.getCrewTacticalOverview(crew);
   }
 
   @Patch('crew/tasks/:alertId/resolve')
+  @Post('crew/tasks/:alertId/resolve')
   @UseGuards(JwtAuthGuard)
   @Roles(UserRole.CUADRILLA)
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'evidenceBefore', maxCount: 1 },
+      { name: 'evidenceAfter', maxCount: 1 },
+    ]),
+  )
   @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
   @ApiOperation({
-    summary: 'Acequia Limpia / Cerrar Tarea con Soft Delete (Rol CUADRILLA)',
+    summary: 'Acequia Limpia / Cerrar Tarea con Auditoría Fotográfica Obligatoria (Rol CUADRILLA)',
     description:
-      'Marca la alerta y la tarea como `RESOLVED` (`resolved_at = now()`). La alerta desaparece del mapa público pero permanece en la base de datos para las estadísticas del Administrador.',
+      'Recibe obligatoriamente 2 fotografías (`evidenceBefore` y `evidenceAfter`), las almacena mediante `StorageService` en `/uploads/crew-evidence/` y marca la alerta como `RESOLVED` (`resolved_at = now()`).',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['evidenceBefore', 'evidenceAfter'],
+      properties: {
+        evidenceBefore: {
+          type: 'string',
+          format: 'binary',
+          description: 'Fotografía obligatoria del estado "Antes" de la limpieza',
+        },
+        evidenceAfter: {
+          type: 'string',
+          format: 'binary',
+          description: 'Fotografía obligatoria del estado "Después" de la limpieza',
+        },
+        resolutionNotes: {
+          type: 'string',
+          description: 'Observaciones operativas del cierre de tarea',
+        },
+      },
+    },
   })
   resolveCrewTask(
     @CurrentUser() crew: AuthTokenPayload,
     @Param('alertId') alertId: string,
     @Body() dto: ResolveTaskDto,
+    @UploadedFiles()
+    files?: {
+      evidenceBefore?: VisionImageInput[];
+      evidenceAfter?: VisionImageInput[];
+    },
   ) {
-    return this.service.resolveCrewTask(crew, alertId, dto);
+    const beforeFile = files?.evidenceBefore?.[0];
+    const afterFile = files?.evidenceAfter?.[0];
+
+    if (!beforeFile || !afterFile) {
+      throw new BadRequestException(
+        'Para cerrar la tarea es obligatorio adjuntar las 2 fotografías de auditoría: "Antes" y "Después" de limpiar la acequia.',
+      );
+    }
+
+    validateUploadedImage(beforeFile, this.config.uploadMaxSizeMb);
+    validateUploadedImage(afterFile, this.config.uploadMaxSizeMb);
+
+    return this.service.resolveCrewTask(crew, alertId, dto, {
+      evidenceBefore: beforeFile,
+      evidenceAfter: afterFile,
+    });
   }
 }

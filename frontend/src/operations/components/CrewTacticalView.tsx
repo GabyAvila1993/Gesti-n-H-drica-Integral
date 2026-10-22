@@ -11,6 +11,7 @@ import { Spinner } from '../../shared/ui/Spinner/Spinner';
 import { classNames } from '../../shared/ui/class-names';
 import styles from '../OperationsPanelPage.module.css';
 import { operationsApi } from '../services/operations.api';
+import { computeStreetRoutes, type StreetRouteOption } from '../services/osrm-routing';
 import type { CrewTacticalOverview, PublicUser } from '../types';
 
 interface CrewTacticalViewProps {
@@ -35,21 +36,6 @@ const DEFAULT_BASE_BY_MUNICIPALITY: Record<string, { lat: number; lng: number }>
   Maipú: { lat: -32.9772, lng: -68.7885 },
 };
 
-function computeDistanceMeters(
-  a: { lat: number; lng: number },
-  b: { lat: number; lng: number },
-): number {
-  const toRad = (deg: number) => (deg * Math.PI) / 180;
-  const dLat = toRad(b.lat - a.lat);
-  const dLng = toRad(b.lng - a.lng);
-  const sinLat = Math.sin(dLat / 2);
-  const sinLng = Math.sin(dLng / 2);
-  const h =
-    sinLat * sinLat +
-    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * sinLng * sinLng;
-  return Math.round(2 * 6371000 * Math.asin(Math.min(1, Math.sqrt(h))));
-}
-
 export function CrewTacticalView({ token, currentUser }: CrewTacticalViewProps) {
   const fallbackBase =
     DEFAULT_BASE_BY_MUNICIPALITY[currentUser.municipality] ??
@@ -65,15 +51,29 @@ export function CrewTacticalView({ token, currentUser }: CrewTacticalViewProps) 
   const [error, setError] = useState<string | null>(null);
 
   const [activeAlertId, setActiveAlertId] = useState<string | null>(null);
+
+  // Ruteo vial OSRM bajo demanda ("Cómo llegar")
+  const [streetRoutes, setStreetRoutes] = useState<StreetRouteOption[]>([]);
+  const [routingAlertId, setRoutingAlertId] = useState<string | null>(null);
+  const [calculatingRoutes, setCalculatingRoutes] = useState(false);
+
+  // Evidencias fotográficas obligatorias ("Antes" y "Después") por alerta
+  const [beforePhotoByAlert, setBeforePhotoByAlert] = useState<Record<string, File | undefined>>(
+    {},
+  );
+  const [afterPhotoByAlert, setAfterPhotoByAlert] = useState<Record<string, File | undefined>>({});
   const [notesByAlert, setNotesByAlert] = useState<Record<string, string>>({});
   const [resolvingId, setResolvingId] = useState<string | null>(null);
-  const [bannerMsg, setBannerMsg] = useState<string | null>(null);
+  const [bannerMsg, setBannerMsg] = useState<{
+    tone: 'success' | 'error';
+    text: string;
+  } | null>(null);
 
   const requestGpsPosition = useCallback(() => {
     if (!('geolocation' in navigator)) {
       setCrewCoords(fallbackBase);
       setGpsStatus(
-        `GPS no disponible en este navegador · Punto base operativo (${currentUser.municipality})`,
+        `GPS no disponible en este navegador · Base operativa (${currentUser.municipality})`,
       );
       return;
     }
@@ -90,7 +90,7 @@ export function CrewTacticalView({ token, currentUser }: CrewTacticalViewProps) 
       () => {
         setCrewCoords(fallbackBase);
         setGpsStatus(
-          `Ubicación simulada en base municipal (${currentUser.municipality}) — permiso GPS no concedido`,
+          `Ubicación en base municipal (${currentUser.municipality}) — permiso GPS no concedido`,
         );
       },
       { enableHighAccuracy: true, timeout: 6000, maximumAge: 15000 },
@@ -115,6 +115,7 @@ export function CrewTacticalView({ token, currentUser }: CrewTacticalViewProps) 
         );
       } else {
         setActiveAlertId(null);
+        setStreetRoutes([]);
       }
     } catch (err) {
       setError(
@@ -131,20 +132,53 @@ export function CrewTacticalView({ token, currentUser }: CrewTacticalViewProps) 
     void loadTasks();
   }, [loadTasks]);
 
+  const handleCalculateDirections = async (alertId: string, dest: { lat: number; lng: number }) => {
+    setActiveAlertId(alertId);
+    setRoutingAlertId(alertId);
+    setCalculatingRoutes(true);
+    try {
+      const routes = await computeStreetRoutes(crewCoords, dest);
+      setStreetRoutes(routes);
+    } finally {
+      setCalculatingRoutes(false);
+    }
+  };
+
   const handleResolveTask = async (alertId: string) => {
+    const beforeFile = beforePhotoByAlert[alertId];
+    const afterFile = afterPhotoByAlert[alertId];
+
+    if (!beforeFile || !afterFile) {
+      setBannerMsg({
+        tone: 'error',
+        text: 'Es obligatorio subir las 2 fotografías ("Antes" y "Después") antes de cerrar la tarea.',
+      });
+      return;
+    }
+
     setResolvingId(alertId);
     setBannerMsg(null);
     try {
-      const note = notesByAlert[alertId];
-      await operationsApi.resolveCrewTask(token, alertId, note);
-      setBannerMsg(
-        '✅ Acequia marcada como LIMPIA (Estado RESOLVED). El marcador se retiró del mapa público y se sumó al histórico del Administrador.',
-      );
+      await operationsApi.resolveCrewTask(token, {
+        alertId,
+        evidenceBefore: beforeFile,
+        evidenceAfter: afterFile,
+        resolutionNotes: notesByAlert[alertId],
+      });
+      setBannerMsg({
+        tone: 'success',
+        text: '✅ Acequia marcada como LIMPIA (Estado RESOLVED) con evidencia fotográfica Antes/Después guardada en /uploads.',
+      });
+      if (routingAlertId === alertId) {
+        setStreetRoutes([]);
+        setRoutingAlertId(null);
+      }
       await loadTasks();
     } catch (err) {
-      setBannerMsg(
-        err instanceof ApiError ? err.message : 'No se pudo cerrar la tarea seleccionada.',
-      );
+      setBannerMsg({
+        tone: 'error',
+        text: err instanceof ApiError ? err.message : 'No se pudo cerrar la tarea seleccionada.',
+      });
     } finally {
       setResolvingId(null);
     }
@@ -161,15 +195,14 @@ export function CrewTacticalView({ token, currentUser }: CrewTacticalViewProps) 
       }
     : null;
 
-  const routeDistanceMeters = targetCoords
-    ? computeDistanceMeters(crewCoords, targetCoords)
-    : null;
+  const alternativeRoutes = streetRoutes.filter((r) => !r.isFastest);
+  const fastestRoute = streetRoutes.find((r) => r.isFastest);
 
   return (
     <div className={styles.page}>
       <div className={styles.tacticalGrid}>
         <Card
-          title={`Mapa Táctico de Cuadrilla · ${currentUser.fullName}`}
+          title={`Mapa Táctico Vial (OSRM) · ${currentUser.fullName}`}
           actions={
             <Button variant="ghost" onClick={requestGpsPosition}>
               📍 Actualizar mi GPS
@@ -178,17 +211,28 @@ export function CrewTacticalView({ token, currentUser }: CrewTacticalViewProps) 
         >
           <div className={styles.gpsStatusBanner}>
             <span>🔵 Tu ubicación: {gpsStatus}</span>
-            {routeDistanceMeters !== null && (
-              <span>
-                Distancia a tarea activa:{' '}
-                <strong>
-                  {routeDistanceMeters >= 1000
-                    ? `${(routeDistanceMeters / 1000).toFixed(2)} km`
-                    : `${routeDistanceMeters} m`}
-                </strong>
-              </span>
+            {activeTask && targetCoords && (
+              <Button
+                onClick={() => void handleCalculateDirections(activeTask.alert.id, targetCoords)}
+                disabled={calculatingRoutes}
+              >
+                {calculatingRoutes ? 'Calculando calles…' : '🧭 Cómo llegar'}
+              </Button>
             )}
           </div>
+
+          {streetRoutes.length > 0 && (
+            <div className={styles.routesSummaryBar} aria-label="Rutas viales calculadas">
+              {fastestRoute && (
+                <span className={styles.routeBadgeFastest}>🔵 {fastestRoute.label}</span>
+              )}
+              {alternativeRoutes.map((alt) => (
+                <span key={alt.id} className={styles.routeBadgeAlt}>
+                  ⚪ Alternativa: {alt.label}
+                </span>
+              ))}
+            </div>
+          )}
 
           <div className={styles.mapBox}>
             <BaseMap>
@@ -205,15 +249,31 @@ export function CrewTacticalView({ token, currentUser }: CrewTacticalViewProps) 
                 </Tooltip>
               </CircleMarker>
 
-              {/* Línea de ruteo desde el punto azul de la cuadrilla hasta la alerta asignada */}
-              {targetCoords && (
+              {/* Rutas viales alternativas por calles (líneas grises con +N min) */}
+              {alternativeRoutes.map((alt) => (
                 <Polyline
-                  positions={[
-                    [crewCoords.lat, crewCoords.lng],
-                    [targetCoords.lat, targetCoords.lng],
-                  ]}
-                  pathOptions={{ className: styles.crewRouteLine }}
-                />
+                  key={alt.id}
+                  positions={alt.coordinates}
+                  pathOptions={{ className: styles.routeAlternativeLine }}
+                >
+                  <Tooltip permanent direction="center">
+                    +{alt.diffMinutes} min ({alt.distanceKm} km)
+                  </Tooltip>
+                </Polyline>
+              ))}
+
+              {/* Ruta más rápida por calles reales (línea azul gruesa) */}
+              {fastestRoute && (
+                <Polyline
+                  key={fastestRoute.id}
+                  positions={fastestRoute.coordinates}
+                  pathOptions={{ className: styles.routeFastestLine }}
+                >
+                  <Tooltip permanent direction="top">
+                    <strong>Camino más rápido</strong> ({fastestRoute.durationMinutes} min ·{' '}
+                    {fastestRoute.distanceKm} km)
+                  </Tooltip>
+                </Polyline>
               )}
 
               {/* Marcadores de las tareas asignadas a la cuadrilla */}
@@ -251,8 +311,13 @@ export function CrewTacticalView({ token, currentUser }: CrewTacticalViewProps) 
           }
         >
           {bannerMsg && (
-            <div className={styles.successBox} role="status">
-              {bannerMsg}
+            <div
+              className={
+                bannerMsg.tone === 'success' ? styles.successBox : styles.errorBox
+              }
+              role="status"
+            >
+              {bannerMsg.text}
             </div>
           )}
 
@@ -279,7 +344,9 @@ export function CrewTacticalView({ token, currentUser }: CrewTacticalViewProps) 
                   lat: alert.location.coordinates[1],
                   lng: alert.location.coordinates[0],
                 };
-                const distMeters = computeDistanceMeters(crewCoords, alertCoord);
+                const beforeFile = beforePhotoByAlert[alert.id];
+                const afterFile = afterPhotoByAlert[alert.id];
+                const bothPhotosReady = Boolean(beforeFile && afterFile);
 
                 return (
                   <article
@@ -294,21 +361,90 @@ export function CrewTacticalView({ token, currentUser }: CrewTacticalViewProps) 
                       <div>
                         <p className={styles.managerAlertTitle}>{alert.address}</p>
                         <p className={styles.managerAlertSub}>
-                          Municipio: {alert.municipality} · Distancia:{' '}
-                          {distMeters >= 1000
-                            ? `${(distMeters / 1000).toFixed(2)} km`
-                            : `${distMeters} m`}
+                          Municipio: {alert.municipality} · Obstrucción:{' '}
+                          <strong>{alert.obstructionPercentage}%</strong>
                         </p>
                       </div>
                       <RiskBadge level={alert.riskLevel} />
                     </div>
 
-                    <p className={styles.managerAlertSub}>
-                      Obstrucción detectada: <strong>{alert.obstructionPercentage}%</strong> ·
-                      Asignado por: {assignment.assignedByName}
-                    </p>
+                    <div className={styles.assignRow}>
+                      <Button
+                        variant="secondary"
+                        onClick={() => void handleCalculateDirections(alert.id, alertCoord)}
+                        disabled={calculatingRoutes && routingAlertId === alert.id}
+                      >
+                        {calculatingRoutes && routingAlertId === alert.id
+                          ? 'Calculando rutas por calles…'
+                          : '🧭 Cómo llegar (Ver 3 rutas viales)'}
+                      </Button>
+                    </div>
 
                     {alert.notes && <p className={styles.managerAlertSub}>“{alert.notes}”</p>}
+
+                    {/* Auditoría Fotográfica Obligatoria: Antes y Después */}
+                    <div className={styles.evidenceSection}>
+                      <span className={styles.evidenceSectionTitle}>
+                        📷 Auditoría Fotográfica Obligatoria (Antes y Después)
+                      </span>
+
+                      <div className={styles.evidenceGrid}>
+                        <label
+                          className={classNames(
+                            styles.evidenceSlot,
+                            beforeFile && styles.evidenceSlotReady,
+                          )}
+                        >
+                          <span className={styles.evidenceLabel}>1. Foto ANTES *</span>
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            className={styles.evidenceFileInput}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              setBeforePhotoByAlert((prev) => ({
+                                ...prev,
+                                [alert.id]: file,
+                              }));
+                            }}
+                          />
+                          {beforeFile && (
+                            <span className={styles.evidenceFileName}>✔ {beforeFile.name}</span>
+                          )}
+                        </label>
+
+                        <label
+                          className={classNames(
+                            styles.evidenceSlot,
+                            afterFile && styles.evidenceSlotReady,
+                          )}
+                        >
+                          <span className={styles.evidenceLabel}>2. Foto DESPUÉS *</span>
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            className={styles.evidenceFileInput}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              setAfterPhotoByAlert((prev) => ({
+                                ...prev,
+                                [alert.id]: file,
+                              }));
+                            }}
+                          />
+                          {afterFile && (
+                            <span className={styles.evidenceFileName}>✔ {afterFile.name}</span>
+                          )}
+                        </label>
+                      </div>
+
+                      {!bothPhotosReady && (
+                        <span className={styles.evidenceMissingHint}>
+                          ⚠️ Debés adjuntar ambas fotos ("Antes" y "Después") para habilitar el
+                          cierre de la tarea. (Asignada por {assignment.assignedByName})
+                        </span>
+                      )}
+                    </div>
 
                     <Input
                       label="Observación de cierre (opcional)"
@@ -325,11 +461,11 @@ export function CrewTacticalView({ token, currentUser }: CrewTacticalViewProps) 
                     <button
                       type="button"
                       className={styles.resolveBigButton}
-                      disabled={resolvingId === alert.id}
+                      disabled={!bothPhotosReady || resolvingId === alert.id}
                       onClick={() => void handleResolveTask(alert.id)}
                     >
                       {resolvingId === alert.id
-                        ? 'Cerrando tarea y actualizando mapa…'
+                        ? 'Subiendo evidencias y cerrando tarea…'
                         : '✅ Acequia Limpia / Cerrar Tarea'}
                     </button>
                   </article>

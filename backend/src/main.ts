@@ -27,7 +27,10 @@ async function bootstrap() {
   app.useStaticAssets(uploadsDir, { prefix: publicPrefix });
 
   app.setGlobalPrefix(config.globalPrefix);
-  app.enableCors({ origin: config.corsOrigin });
+
+  // Configuración flexible de CORS para desarrollo local y despliegue cloud (Render)
+  app.enableCors({ origin: process.env.CORS_ORIGIN || '*' });
+
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }),
   );
@@ -52,13 +55,16 @@ async function bootstrap() {
     customSiteTitle: `${config.name} · OpenAPI Docs`,
   });
 
-  await app.listen(config.port);
+  // Escuchar en el puerto inyectado por el host (Render) sobre la interfaz 0.0.0.0
+  const port = process.env.PORT || 3000;
+  await app.listen(port, '0.0.0.0');
+
   Logger.log(
-    `${config.name} API escuchando en http://localhost:${config.port}/${config.globalPrefix}`,
+    `${config.name} API escuchando en http://0.0.0.0:${port}/${config.globalPrefix}`,
     'Bootstrap',
   );
   Logger.log(
-    `Documentación Swagger disponible en http://localhost:${config.port}/${config.globalPrefix}/docs`,
+    `Documentación Swagger disponible en http://0.0.0.0:${port}/${config.globalPrefix}/docs`,
     'Bootstrap',
   );
 }

@@ -67,4 +67,10 @@ export class UrbanAlertEntity {
 
   @Column({ name: 'resolved_at', type: 'timestamptz', nullable: true })
   resolved_at!: Date | null;
+
+  @Column({ name: 'evidence_before_url', type: 'varchar', length: 500, nullable: true })
+  evidence_before_url!: string | null;
+
+  @Column({ name: 'evidence_after_url', type: 'varchar', length: 500, nullable: true })
+  evidence_after_url!: string | null;
 }

@@ -17,43 +17,45 @@ export const STORAGE_PROVIDERS = ['local', 's3', 'cloudinary'] as const;
 class EnvironmentVariables {
   @IsOptional()
   @IsString()
-  APP_NAME?: string;
+  APP_NAME?: string = 'Gestión Hídrica Integral';
 
   @IsOptional()
   @IsInt()
   @Min(1)
   @Max(65535)
-  PORT?: number;
+  PORT?: number = 3000;
 
   @IsOptional()
   @IsString()
-  CORS_ORIGIN?: string;
+  CORS_ORIGIN?: string = '*';
 
+  @IsOptional()
   @IsIn(SATELLITE_PROVIDERS)
-  SATELLITE_PROVIDER: string;
+  SATELLITE_PROVIDER?: string = 'mock';
 
   @IsOptional()
   @IsInt()
-  SATELLITE_MOCK_SEED?: number;
+  SATELLITE_MOCK_SEED?: number = 2026;
 
   @IsOptional()
   @IsNumber()
-  MNDWI_LEAK_THRESHOLD?: number;
+  MNDWI_LEAK_THRESHOLD?: number = 0.2;
 
   @IsOptional()
   @IsNumber()
-  MNDWI_MEDIUM_THRESHOLD?: number;
+  MNDWI_MEDIUM_THRESHOLD?: number = 0.3;
 
   @IsOptional()
   @IsNumber()
-  MNDWI_CRITICAL_THRESHOLD?: number;
+  MNDWI_CRITICAL_THRESHOLD?: number = 0.4;
 
+  @IsOptional()
   @IsIn(VISION_PROVIDERS)
-  AI_VISION_PROVIDER: string;
+  AI_VISION_PROVIDER?: string = 'mock';
 
   @IsOptional()
   @IsNumber()
-  UPLOAD_MAX_SIZE_MB?: number;
+  UPLOAD_MAX_SIZE_MB?: number = 10;
 
   @IsOptional()
   @IsString()
@@ -65,18 +67,28 @@ class EnvironmentVariables {
 
   @IsOptional()
   @IsIn(STORAGE_PROVIDERS)
-  STORAGE_PROVIDER?: string;
+  STORAGE_PROVIDER?: string = 'local';
 }
 
 /**
- * Valida el .env al iniciar. Si falta algo obligatorio o un valor es inválido,
- * la aplicación no arranca y se informa el error de forma explícita.
+ * Valida las variables de entorno de forma resiliente para desarrollo local y plataformas
+ * cloud (Render). Si una variable opcional viene vacía ("") o no se pasa en el build,
+ * aplica valores por defecto seguros sin bloquear el arranque del contenedor.
  */
 export function validateEnv(config: Record<string, unknown>) {
-  const validated = plainToInstance(EnvironmentVariables, config, {
+  const sanitized: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(config)) {
+    if (typeof value === 'string' && value.trim() === '') {
+      continue;
+    }
+    sanitized[key] = value;
+  }
+
+  const validated = plainToInstance(EnvironmentVariables, sanitized, {
     enableImplicitConversion: true,
   });
-  const errors = validateSync(validated, { skipMissingProperties: false });
+
+  const errors = validateSync(validated, { skipMissingProperties: true });
 
   if (errors.length > 0) {
     const details = errors
@@ -85,5 +97,12 @@ export function validateEnv(config: Record<string, unknown>) {
     throw new Error(`Configuración de entorno inválida:\n - ${details}`);
   }
 
-  return config;
+  return {
+    ...config,
+    PORT: validated.PORT ?? 3000,
+    CORS_ORIGIN: validated.CORS_ORIGIN ?? '*',
+    SATELLITE_PROVIDER: validated.SATELLITE_PROVIDER ?? 'mock',
+    AI_VISION_PROVIDER: validated.AI_VISION_PROVIDER ?? 'mock',
+    STORAGE_PROVIDER: validated.STORAGE_PROVIDER ?? 'local',
+  };
 }

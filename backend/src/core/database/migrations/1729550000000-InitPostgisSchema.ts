@@ -61,6 +61,8 @@ export class InitPostgisSchema1729550000000 implements MigrationInterface {
         "status" "urban_alert_status_enum" NOT NULL DEFAULT 'PENDING',
         "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
         "resolved_at" TIMESTAMPTZ,
+        "evidence_before_url" varchar(500),
+        "evidence_after_url" varchar(500),
         CONSTRAINT "PK_urban_alerts_id" PRIMARY KEY ("id")
       );
     `);
@@ -82,6 +84,8 @@ export class InitPostgisSchema1729550000000 implements MigrationInterface {
         "assigned_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
         "resolved_at" TIMESTAMPTZ,
         "resolution_notes" text,
+        "evidence_before_url" varchar(500),
+        "evidence_after_url" varchar(500),
         CONSTRAINT "PK_task_assignments_id" PRIMARY KEY ("id"),
         CONSTRAINT "FK_task_assignments_alert" FOREIGN KEY ("alert_id") REFERENCES "urban_alerts"("id") ON DELETE CASCADE,
         CONSTRAINT "FK_task_assignments_assigned_by" FOREIGN KEY ("assigned_by_id") REFERENCES "users"("id") ON DELETE RESTRICT,

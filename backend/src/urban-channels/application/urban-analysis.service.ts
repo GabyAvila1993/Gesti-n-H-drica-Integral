@@ -127,6 +127,8 @@ export class UrbanAnalysisService {
       status: entity.status,
       createdAt: entity.created_at.toISOString(),
       resolvedAt: entity.resolved_at ? entity.resolved_at.toISOString() : undefined,
+      evidenceBeforeUrl: entity.evidence_before_url ?? undefined,
+      evidenceAfterUrl: entity.evidence_after_url ?? undefined,
       location: entity.geom,
     };
   }
@@ -251,9 +253,17 @@ export class UrbanAnalysisService {
   }
 
   /**
-   * Soft Delete lógico: marca la alerta como `RESOLVED` cuando la cuadrilla finaliza la limpieza.
+   * Soft Delete lógico: marca la alerta como `RESOLVED` cuando la cuadrilla finaliza la limpieza
+   * adjuntando obligatoriamente las fotografías de evidencia "Antes" y "Después".
    */
-  async markAlertResolved(alertId: string, resolutionNotes?: string): Promise<UrbanAlert> {
+  async markAlertResolved(
+    alertId: string,
+    payload: {
+      resolutionNotes?: string;
+      evidenceBeforeUrl: string;
+      evidenceAfterUrl: string;
+    },
+  ): Promise<UrbanAlert> {
     const { alerts } = await this.ensureInitialized();
     const target = alerts.find((a) => a.id === alertId);
     if (!target) {
@@ -263,8 +273,10 @@ export class UrbanAnalysisService {
     const resolvedAtIso = new Date().toISOString();
     target.status = 'RESOLVED';
     target.resolvedAt = resolvedAtIso;
-    if (resolutionNotes && resolutionNotes.trim().length > 0) {
-      target.notes = resolutionNotes.trim();
+    target.evidenceBeforeUrl = payload.evidenceBeforeUrl;
+    target.evidenceAfterUrl = payload.evidenceAfterUrl;
+    if (payload.resolutionNotes && payload.resolutionNotes.trim().length > 0) {
+      target.notes = payload.resolutionNotes.trim();
     }
 
     if (this.dataSource && this.dataSource.isInitialized) {
@@ -275,6 +287,8 @@ export class UrbanAnalysisService {
           status: UrbanAlertStatus.RESOLVED,
           resolved_at: new Date(resolvedAtIso),
           notes: target.notes ?? null,
+          evidence_before_url: payload.evidenceBeforeUrl,
+          evidence_after_url: payload.evidenceAfterUrl,
         },
       );
     }

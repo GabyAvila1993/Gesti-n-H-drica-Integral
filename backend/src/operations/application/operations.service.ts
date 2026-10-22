@@ -19,8 +19,10 @@ import { POSTGRES_DATA_SOURCE } from '../../core/database/database.module';
 import { TaskAssignmentEntity } from '../../core/database/entities/task-assignment.entity';
 import { UrbanAlertStatus } from '../../core/database/entities/urban-alert.entity';
 import { UserEntity, UserRole } from '../../core/database/entities/user.entity';
+import { StorageService } from '../../core/storage/storage.service';
 import { UrbanAnalysisService } from '../../urban-channels/application/urban-analysis.service';
 import type { UrbanMunicipality } from '../../urban-channels/domain/risk-level';
+import type { VisionImageInput } from '../../urban-channels/providers/vision-provider.interface';
 import type {
   AuthTokenPayload,
   CrewEfficiencyStat,
@@ -57,6 +59,8 @@ interface OperationsSeedJson {
     readonly assignedMinutesAgo: number;
     readonly resolvedMinutesAgo?: number;
     readonly resolutionNotes?: string;
+    readonly evidenceBeforeUrl?: string;
+    readonly evidenceAfterUrl?: string;
   }>;
 }
 
@@ -81,6 +85,7 @@ export class OperationsService {
   constructor(
     private readonly jwtService: JwtService,
     private readonly urbanService: UrbanAnalysisService,
+    private readonly storageService: StorageService,
     @Inject(authConfig.KEY) private readonly config: AuthConfig,
     @Inject(POSTGRES_DATA_SOURCE) private readonly dataSource: DataSource | null,
   ) {}
@@ -381,12 +386,12 @@ export class OperationsService {
   }
 
   /**
-   * Vista ENCARGADO: Obtiene los reportes pendientes de su municipio, el clustering dinámico
-   * de Zonas Críticas (1 km o 200 m según zoom) y las cuadrillas disponibles para asignación.
+   * Vista ENCARGADO: Obtiene los reportes pendientes de su municipio, el clustering adaptativo
+   * (DBSCAN + Círculo Envolvente Mínimo y Convex Hull) y las cuadrillas disponibles.
    */
   async getManagerStrategicOverview(
     manager: AuthTokenPayload,
-    radiusMeters = 1000,
+    epsMeters?: number,
   ): Promise<ManagerStrategicOverview> {
     const { users, assignments } = await this.ensureInitialized();
     const pendingAlerts = await this.urbanService.getAlerts({
@@ -400,14 +405,13 @@ export class OperationsService {
       }
     }
 
-    const clusters = computeCriticalZoneClusters(pendingAlerts, radiusMeters);
+    const clusters = computeCriticalZoneClusters(pendingAlerts, epsMeters);
     const crews = users
       .filter((u) => u.municipality === manager.municipality && u.role === UserRole.CUADRILLA)
       .map((u) => this.toPublicUser(u));
 
     return {
       municipality: manager.municipality,
-      radiusMeters,
       alerts: pendingAlerts.map((alert) => ({
         alert,
         assignment: activeAssignmentByAlert.get(alert.id),
@@ -539,15 +543,31 @@ export class OperationsService {
   }
 
   /**
-   * Vista CUADRILLA: "Acequia Limpia / Cerrar Tarea" -> Cambia el estado de la alerta y
-   * de la asignación a `RESOLVED` (Soft Delete lógico). El marcador desaparece del mapa
-   * público pero queda persistido en las estadísticas históricas del Administrador.
+   * Vista CUADRILLA: "Acequia Limpia / Cerrar Tarea" -> Exige obligatoriamente las 2 fotos
+   * de auditoría ("Antes" y "Después"), las guarda mediante `StorageService` en `/uploads/crew-evidence/`
+   * y pasa el reporte a estado `RESOLVED` (Soft Delete lógico).
    */
   async resolveCrewTask(
     crewPayload: AuthTokenPayload,
     alertId: string,
     dto: ResolveTaskDto,
-  ): Promise<{ alertId: string; status: 'RESOLVED'; resolvedAt: string }> {
+    files: {
+      evidenceBefore?: VisionImageInput;
+      evidenceAfter?: VisionImageInput;
+    },
+  ): Promise<{
+    alertId: string;
+    status: 'RESOLVED';
+    resolvedAt: string;
+    evidenceBeforeUrl: string;
+    evidenceAfterUrl: string;
+  }> {
+    if (!files.evidenceBefore || !files.evidenceAfter) {
+      throw new BadRequestException(
+        'Es obligatorio subir las 2 fotos de auditoría ("Antes" y "Después") para cerrar la tarea.',
+      );
+    }
+
     const { assignments } = await this.ensureInitialized();
     const assignment = assignments.find(
       (a) => a.alertId === alertId && a.crewUserId === crewPayload.sub && a.status === 'PENDING',
@@ -559,15 +579,33 @@ export class OperationsService {
       );
     }
 
-    const updatedAlert = await this.urbanService.markAlertResolved(
-      alertId,
-      dto.resolutionNotes,
-    );
+    const [savedBefore, savedAfter] = await Promise.all([
+      this.storageService.saveImage({
+        buffer: files.evidenceBefore.buffer,
+        originalname: files.evidenceBefore.originalname,
+        mimetype: files.evidenceBefore.mimetype,
+        folder: 'crew-evidence',
+      }),
+      this.storageService.saveImage({
+        buffer: files.evidenceAfter.buffer,
+        originalname: files.evidenceAfter.originalname,
+        mimetype: files.evidenceAfter.mimetype,
+        folder: 'crew-evidence',
+      }),
+    ]);
+
+    const updatedAlert = await this.urbanService.markAlertResolved(alertId, {
+      resolutionNotes: dto.resolutionNotes,
+      evidenceBeforeUrl: savedBefore.url,
+      evidenceAfterUrl: savedAfter.url,
+    });
 
     assignment.status = 'RESOLVED';
     assignment.resolvedAt = updatedAlert.resolvedAt ?? new Date().toISOString();
     assignment.resolutionNotes =
       dto.resolutionNotes?.trim() || 'Limpieza de cauce completada por cuadrilla municipal.';
+    assignment.evidenceBeforeUrl = savedBefore.url;
+    assignment.evidenceAfterUrl = savedAfter.url;
 
     if (this.dataSource && this.dataSource.isInitialized) {
       const repo = this.dataSource.getRepository(TaskAssignmentEntity);
@@ -578,6 +616,8 @@ export class OperationsService {
             status: UrbanAlertStatus.RESOLVED,
             resolved_at: new Date(assignment.resolvedAt),
             resolution_notes: assignment.resolutionNotes,
+            evidence_before_url: savedBefore.url,
+            evidence_after_url: savedAfter.url,
           },
         )
         .catch(() => undefined);
@@ -587,6 +627,8 @@ export class OperationsService {
       alertId: updatedAlert.id,
       status: 'RESOLVED',
       resolvedAt: assignment.resolvedAt,
+      evidenceBeforeUrl: savedBefore.url,
+      evidenceAfterUrl: savedAfter.url,
     };
   }
 }
