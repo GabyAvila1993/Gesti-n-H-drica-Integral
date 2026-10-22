@@ -11,70 +11,70 @@
     "critico": [
       {
         "id": "det-crit-1",
-        "label": "Rama caída de plátano",
-        "category": "branch",
-        "confidence": 96,
-        "bbox": { "top": 22, "left": 10, "width": 44, "height": 28 }
+        "label": "Botellas de plástico",
+        "category": "plastic",
+        "confidence": 98,
+        "bbox": { "top": 8, "left": 6, "width": 88, "height": 46 }
       },
       {
         "id": "det-crit-2",
-        "label": "Botella PET aplastada",
+        "label": "Vasos de telgopor",
         "category": "plastic",
-        "confidence": 98,
-        "bbox": { "top": 34, "left": 56, "width": 18, "height": 16 }
+        "confidence": 96,
+        "bbox": { "top": 42, "left": 8, "width": 84, "height": 44 }
       },
       {
         "id": "det-crit-3",
-        "label": "Bolsa de polietileno trabada en puente",
+        "label": "Bolsas de nailon",
         "category": "plastic",
-        "confidence": 91,
-        "bbox": { "top": 54, "left": 18, "width": 24, "height": 19 }
+        "confidence": 94,
+        "bbox": { "top": 24, "left": 14, "width": 72, "height": 54 }
       },
       {
         "id": "det-crit-4",
-        "label": "Escombro de hormigón y ripio",
-        "category": "debris",
-        "confidence": 94,
-        "bbox": { "top": 52, "left": 48, "width": 32, "height": 26 }
+        "label": "Ramas y hojas",
+        "category": "branch",
+        "confidence": 92,
+        "bbox": { "top": 62, "left": 12, "width": 76, "height": 30 }
       }
     ],
     "medio": [
       {
         "id": "det-med-1",
-        "label": "Acumulación de hojas y poda",
-        "category": "branch",
-        "confidence": 93,
-        "bbox": { "top": 28, "left": 16, "width": 32, "height": 22 }
+        "label": "Escombros / Hormigón",
+        "category": "debris",
+        "confidence": 95,
+        "bbox": { "top": 52, "left": 4, "width": 38, "height": 40 }
       },
       {
         "id": "det-med-2",
-        "label": "Envase plástico descartable",
-        "category": "plastic",
-        "confidence": 89,
-        "bbox": { "top": 46, "left": 54, "width": 20, "height": 15 }
-      },
-      {
-        "id": "det-med-3",
-        "label": "Sedimento y cascotes",
-        "category": "debris",
-        "confidence": 87,
-        "bbox": { "top": 60, "left": 26, "width": 22, "height": 14 }
+        "label": "Ramas y hojas",
+        "category": "branch",
+        "confidence": 91,
+        "bbox": { "top": 34, "left": 24, "width": 24, "height": 18 }
       }
     ],
     "bajo": [
       {
         "id": "det-low-1",
-        "label": "Botella PET flotante",
+        "label": "Botellas de plástico",
         "category": "plastic",
-        "confidence": 95,
-        "bbox": { "top": 38, "left": 24, "width": 16, "height": 14 }
+        "confidence": 96,
+        "bbox": { "top": 16, "left": 22, "width": 52, "height": 30 }
       },
       {
         "id": "det-low-2",
-        "label": "Rama menor en talud",
-        "category": "branch",
-        "confidence": 86,
-        "bbox": { "top": 56, "left": 60, "width": 18, "height": 12 }
+        "label": "Vasos de telgopor",
+        "category": "plastic",
+        "confidence": 93,
+        "bbox": { "top": 44, "left": 24, "width": 48, "height": 24 }
+      },
+      {
+        "id": "det-low-3",
+        "label": "Escombros / Hormigón",
+        "category": "debris",
+        "confidence": 91,
+        "bbox": { "top": 66, "left": 26, "width": 39, "height": 18 }
       }
     ]
   },
@@ -84,11 +84,11 @@
       "analysisId": "seed-analysis-1",
       "municipality": "Capital",
       "address": "Av. Emilio Civit y Belgrano (Rejilla sifón norte)",
-      "obstructionPercentage": 79,
+      "obstructionPercentage": 98,
       "riskLevel": "CRITICO",
       "detectionsCount": 4,
       "scenarioKey": "critico",
-      "notes": "Puente vehicular tapado tras viento Zonda.",
+      "notes": "Tapón masivo de botellas de plástico, vasos de telgopor y bolsas de nailon. Llevar horquillas, rastrillos y camión volcador.",
       "minutesAgo": 45,
       "lat": -32.8884,
       "lng": -68.8562
@@ -98,11 +98,11 @@
       "analysisId": "seed-analysis-2",
       "municipality": "Godoy Cruz",
       "address": "San Martín Sur y Paso de los Andes",
-      "obstructionPercentage": 35,
+      "obstructionPercentage": 59,
       "riskLevel": "MEDIO",
-      "detectionsCount": 3,
+      "detectionsCount": 2,
       "scenarioKey": "medio",
-      "notes": "Rejilla con retención parcial de hojas de plátano.",
+      "notes": "Losa grande de hormigón caída en margen izquierdo y ramas acumuladas. Requiere barreta, maza y retiro de escombros.",
       "minutesAgo": 120,
       "lat": -32.9278,
       "lng": -68.8471
@@ -112,11 +112,11 @@
       "analysisId": "seed-analysis-3",
       "municipality": "Guaymallén",
       "address": "Bandera de los Andes y Urquiza (Villa Nueva)",
-      "obstructionPercentage": 74,
+      "obstructionPercentage": 85,
       "riskLevel": "CRITICO",
-      "detectionsCount": 4,
-      "scenarioKey": "critico",
-      "notes": "Acumulación de bolsas y ramas en cruce de alcantarilla.",
+      "detectionsCount": 3,
+      "scenarioKey": "bajo",
+      "notes": "Canaleta estrecha tapada por botellas de plástico, vasos de telgopor y tierra sedimentada. Llevar palas anchas y bolsas de consorcio.",
       "minutesAgo": 185,
       "lat": -32.8995,
       "lng": -68.8095
@@ -126,11 +126,11 @@
       "analysisId": "seed-analysis-4",
       "municipality": "Las Heras",
       "address": "Av. San Martín y Roca (Panquehua)",
-      "obstructionPercentage": 41,
+      "obstructionPercentage": 59,
       "riskLevel": "MEDIO",
-      "detectionsCount": 3,
+      "detectionsCount": 2,
       "scenarioKey": "medio",
-      "notes": "Escombros menores y envases en sifón.",
+      "notes": "Bloque de hormigón desprendido en el talud izquierdo y ramas secas. Enviar cuadrilla con herramientas de demolición liviana.",
       "minutesAgo": 260,
       "lat": -32.8495,
       "lng": -68.8365
@@ -140,10 +140,11 @@
       "analysisId": "seed-analysis-5",
       "municipality": "Maipú",
       "address": "Calle Ozamis y Maza",
-      "obstructionPercentage": 11,
-      "riskLevel": "BAJO",
-      "detectionsCount": 2,
+      "obstructionPercentage": 85,
+      "riskLevel": "CRITICO",
+      "detectionsCount": 3,
       "scenarioKey": "bajo",
+      "notes": "Acequia obstruida al 85% por acumulación de botellas de plástico y sedimento. Despachar cuadrilla de limpieza manual.",
       "minutesAgo": 340,
       "lat": -32.9765,
       "lng": -68.7865

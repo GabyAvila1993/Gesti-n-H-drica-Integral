@@ -22,20 +22,32 @@ export function useImageAnalysis() {
   const [registration, setRegistration] = useState<AlertRegistrationStatus>({ kind: 'idle' });
   const [alerts, setAlerts] = useState<UrbanAlert[]>([]);
   const [alertsLoading, setAlertsLoading] = useState<boolean>(true);
+  const [alertsError, setAlertsError] = useState<string | null>(null);
+  const [reloadTick, setReloadTick] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
     setAlertsLoading(true);
+    setAlertsError(null);
+
     urbanApi
       .getAlerts(undefined, controller.signal)
-      .then((list) => setAlerts(list))
-      .catch(() => {
-        // Error silencioso en listado inicial
+      .then((list) => {
+        setAlerts(list);
+        setAlertsLoading(false);
       })
-      .finally(() => setAlertsLoading(false));
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === 'AbortError') return;
+        setAlertsError(
+          error instanceof ApiError
+            ? error.message
+            : 'No se pudieron cargar las alertas de acequias.',
+        );
+        setAlertsLoading(false);
+      });
 
     return () => controller.abort();
-  }, []);
+  }, [reloadTick]);
 
   useEffect(() => {
     return () => {
@@ -100,14 +112,20 @@ export function useImageAnalysis() {
     setRegistration({ kind: 'idle' });
   }, []);
 
+  const reloadAlerts = useCallback(() => {
+    setReloadTick((n) => n + 1);
+  }, []);
+
   return {
     previewUrl,
     analysis,
     registration,
     alerts,
     alertsLoading,
+    alertsError,
     analyzeFile,
     registerAlert,
+    reloadAlerts,
     reset,
   };
 }

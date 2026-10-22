@@ -1,4 +1,5 @@
 import { Controller, Get, Inject } from '@nestjs/common';
+import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   appConfig,
   satelliteConfig,
@@ -8,6 +9,7 @@ import {
   type VisionConfig,
 } from '../config/app.config';
 
+@ApiTags('Salud del Sistema')
 @Controller('health')
 export class HealthController {
   constructor(
@@ -17,6 +19,14 @@ export class HealthController {
   ) {}
 
   @Get()
+  @ApiOperation({
+    summary: 'Verificar estado operativo del backend',
+    description:
+      'Devuelve el estado de salud del servidor, el nombre configurado de la aplicación y los proveedores activos para monitoreo satelital y visión artificial.',
+  })
+  @ApiOkResponse({
+    description: 'Servidor operativo y proveedores inicializados correctamente.',
+  })
   check() {
     return {
       status: 'ok',

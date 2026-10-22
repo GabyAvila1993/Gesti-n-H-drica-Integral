@@ -19,6 +19,7 @@ export function DashboardPage() {
   const [source, setSource] = useState<IncidentSource | 'ALL'>('ALL');
   const [severity, setSeverity] = useState<Severity | 'ALL'>('ALL');
   const [selectedRecord, setSelectedRecord] = useState<UnifiedIncidentRecord | null>(null);
+  const [focusTrigger, setFocusTrigger] = useState(0);
 
   const filterParams = useMemo(
     () => ({
@@ -33,6 +34,7 @@ export function DashboardPage() {
 
   const handleSelectRecord = (record: UnifiedIncidentRecord) => {
     setSelectedRecord(record);
+    setFocusTrigger((n) => n + 1);
   };
 
   return (
@@ -118,6 +120,7 @@ export function DashboardPage() {
               {selectedRecord ?? state.records[0] ? (
                 <IncidentDetailCard
                   record={(selectedRecord ?? state.records[0])!}
+                  focusTrigger={focusTrigger}
                   onClose={() => setSelectedRecord(null)}
                 />
               ) : (

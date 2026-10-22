@@ -18,11 +18,19 @@
   cursor: pointer;
   transition:
     border-color var(--transition-fast),
-    background-color var(--transition-fast);
+    background-color var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
 .dropzone:hover,
 .dropzone--active {
+  border-color: var(--color-accent-500);
+  background-color: var(--color-accent-100);
+}
+
+.dropzone:focus-visible {
+  outline: 3px solid var(--color-accent-500);
+  outline-offset: 2px;
   border-color: var(--color-accent-500);
   background-color: var(--color-accent-100);
 }
@@ -45,6 +53,20 @@
 .dropzone__hint {
   font-size: var(--font-size-xs);
   color: var(--text-secondary);
+}
+
+.dropzone__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background-color: var(--surface-card);
+  color: var(--text-heading);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  box-shadow: var(--shadow-sm);
 }
 
 .samples {
@@ -80,9 +102,15 @@
     background-color var(--transition-fast);
 }
 
-.sample-btn:hover:not(:disabled) {
+.sample-btn:hover:not(:disabled),
+.sample-btn:focus-visible {
   border-color: var(--color-accent-500);
   background-color: var(--surface-hover);
+}
+
+.sample-btn:focus-visible {
+  outline: 2px solid var(--color-accent-500);
+  outline-offset: 2px;
 }
 
 .sample-btn__title {

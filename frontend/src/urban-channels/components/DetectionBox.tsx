@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type KeyboardEvent } from 'react';
 import { classNames } from '../../shared/ui/class-names';
 import { CATEGORY_LABEL, type DebrisCategory, type DetectedObject } from '../types';
 import { DetectionTooltip } from './DetectionTooltip';
@@ -24,6 +24,7 @@ interface DetectionBoxProps {
 export function DetectionBox({ detection, highlighted, onHoverChange }: DetectionBoxProps) {
   const [hovered, setHovered] = useState(false);
   const showTooltip = hovered || highlighted;
+  const tooltipId = `tooltip-${detection.id}`;
 
   const handleEnter = () => {
     setHovered(true);
@@ -35,11 +36,27 @@ export function DetectionBox({ detection, highlighted, onHoverChange }: Detectio
     onHoverChange(null);
   };
 
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape') {
+      event.stopPropagation();
+      handleLeave();
+    } else if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      if (hovered) {
+        handleLeave();
+      } else {
+        handleEnter();
+      }
+    }
+  };
+
   return (
     <div
       role="button"
       tabIndex={0}
       aria-label={`${CATEGORY_LABEL[detection.category]}: ${detection.label} (${detection.confidence}% de confianza)`}
+      aria-describedby={showTooltip ? tooltipId : undefined}
+      aria-expanded={showTooltip}
       className={classNames(
         styles.detectionBox,
         CATEGORY_CLASS[detection.category],
@@ -55,10 +72,14 @@ export function DetectionBox({ detection, highlighted, onHoverChange }: Detectio
       onMouseLeave={handleLeave}
       onFocus={handleEnter}
       onBlur={handleLeave}
+      onKeyDown={handleKeyDown}
     >
-      <span className={styles.detectionBoxBadge}>{detection.confidence}%</span>
+      <span className={styles.detectionBoxBadge} aria-hidden="true">
+        {detection.confidence}%
+      </span>
       {showTooltip && (
         <DetectionTooltip
+          id={tooltipId}
           label={detection.label}
           category={detection.category}
           confidence={detection.confidence}

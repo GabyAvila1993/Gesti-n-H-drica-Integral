@@ -1,5 +1,4 @@
 import { useRef, useState, type ChangeEvent, type DragEvent, type KeyboardEvent } from 'react';
-import { Button } from '../../shared/ui/Button/Button';
 import { classNames } from '../../shared/ui/class-names';
 import {
   createSamplePhotoFile,
@@ -16,6 +15,12 @@ interface ImageDropzoneProps {
 export function ImageDropzone({ disabled = false, onSelectFile }: ImageDropzoneProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [dragging, setDragging] = useState(false);
+
+  const openFilePicker = () => {
+    if (!disabled) {
+      inputRef.current?.click();
+    }
+  };
 
   const handleDragOver = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -45,9 +50,10 @@ export function ImageDropzone({ disabled = false, onSelectFile }: ImageDropzoneP
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (disabled) return;
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
-      inputRef.current?.click();
+      openFilePicker();
     }
   };
 
@@ -55,14 +61,16 @@ export function ImageDropzone({ disabled = false, onSelectFile }: ImageDropzoneP
     <div className={styles.dropzoneWrapper}>
       <div
         role="button"
-        tabIndex={0}
+        tabIndex={disabled ? -1 : 0}
+        aria-disabled={disabled}
+        aria-label="Zona para arrastrar o seleccionar una foto de acequia desde el dispositivo. Presioná Enter o Espacio para abrir el explorador de archivos."
+        aria-describedby="dropzone-formats-hint"
         className={classNames(styles.dropzone, dragging && styles.dropzoneActive)}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        onClick={() => !disabled && inputRef.current?.click()}
+        onClick={openFilePicker}
         onKeyDown={handleKeyDown}
-        aria-label="Arrastrar o seleccionar una foto de acequia"
       >
         <input
           ref={inputRef}
@@ -71,32 +79,35 @@ export function ImageDropzone({ disabled = false, onSelectFile }: ImageDropzoneP
           className={styles.dropzoneInput}
           onChange={handleFileChange}
           disabled={disabled}
+          tabIndex={-1}
+          aria-hidden="true"
         />
         <span className={styles.dropzoneIcon} aria-hidden="true">
           📸
         </span>
         <p className={styles.dropzoneTitle}>
-          Arrastrá una foto de la acequia aquí o hacé clic para explorar
+          Arrastrá una foto de la acequia aquí o presioná Enter / clic para explorar
         </p>
-        <p className={styles.dropzoneHint}>
+        <p id="dropzone-formats-hint" className={styles.dropzoneHint}>
           Formatos admitidos: JPG, PNG, WebP o SVG · Tomá la foto desde el borde del cauce
         </p>
-        <Button variant="secondary" disabled={disabled}>
+        <span className={styles.dropzoneCta} aria-hidden="true">
           Seleccionar imagen del dispositivo
-        </Button>
+        </span>
       </div>
 
-      <div className={styles.samples}>
-        <p className={styles.samplesLabel}>
+      <div className={styles.samples} role="region" aria-label="Escenas simuladas de prueba">
+        <p id="samples-group-label" className={styles.samplesLabel}>
           ¿Querés probar el detector ahora? Elegí una escena simulada de acequia mendocina:
         </p>
-        <div className={styles.samplesGrid}>
+        <div className={styles.samplesGrid} role="group" aria-labelledby="samples-group-label">
           {SAMPLE_PHOTO_PRESETS.map((preset) => (
             <button
               key={preset.id}
               type="button"
               className={styles.sampleBtn}
               disabled={disabled}
+              aria-label={`Probar escena ${preset.title}: ${preset.subtitle}`}
               onClick={() => onSelectFile(createSamplePhotoFile(preset), preset)}
             >
               <span className={styles.sampleBtnTitle}>{preset.title}</span>

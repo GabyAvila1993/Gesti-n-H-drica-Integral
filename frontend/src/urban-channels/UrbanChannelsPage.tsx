@@ -31,8 +31,10 @@ export function UrbanChannelsPage() {
     registration,
     alerts,
     alertsLoading,
+    alertsError,
     analyzeFile,
     registerAlert,
+    reloadAlerts,
     reset,
   } = useImageAnalysis();
 
@@ -147,6 +149,14 @@ export function UrbanChannelsPage() {
       >
         {alertsLoading ? (
           <Spinner label="Cargando alertas registradas…" />
+        ) : alertsError ? (
+          <EmptyState
+            tone="error"
+            icon="⚠️"
+            title="No se pudieron cargar las alertas de acequias"
+            description={alertsError}
+            action={<Button onClick={reloadAlerts}>Reintentar</Button>}
+          />
         ) : filteredAlerts.length === 0 ? (
           <EmptyState
             icon="✅"

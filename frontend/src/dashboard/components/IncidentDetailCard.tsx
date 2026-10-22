@@ -1,3 +1,4 @@
+import { useEffect, useRef, type KeyboardEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { ROUTES } from '../../app/routes';
 import { Button } from '../../shared/ui/Button/Button';
@@ -13,19 +14,47 @@ const dateFormatter = new Intl.DateTimeFormat('es-AR', {
 
 interface IncidentDetailCardProps {
   record: UnifiedIncidentRecord;
+  focusTrigger?: number;
   onClose: () => void;
 }
 
-export function IncidentDetailCard({ record, onClose }: IncidentDetailCardProps) {
+export function IncidentDetailCard({
+  record,
+  focusTrigger = 0,
+  onClose,
+}: IncidentDetailCardProps) {
+  const panelRef = useRef<HTMLDivElement | null>(null);
   const [lng, lat] = record.location.coordinates;
   const moduleRoute = record.source === 'SATELLITE' ? ROUTES.satellite : ROUTES.urban;
 
+  useEffect(() => {
+    if (focusTrigger > 0) {
+      panelRef.current?.focus();
+    }
+  }, [focusTrigger, record.id]);
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Escape') {
+      event.stopPropagation();
+      onClose();
+    }
+  };
+
   return (
-    <div className={styles.detailCard}>
+    <div
+      id="incident-detail-panel"
+      ref={panelRef}
+      role="region"
+      aria-live="polite"
+      aria-label={`Detalle del incidente: ${record.title}`}
+      tabIndex={-1}
+      className={styles.detailCard}
+      onKeyDown={handleKeyDown}
+    >
       <div className={styles.detailCardTop}>
         <div>
           <p className={styles.detailCardSource}>
-            {record.source === 'SATELLITE' ? '🛰️ ' : '🏙️ '}
+            <span aria-hidden="true">{record.source === 'SATELLITE' ? '🛰️ ' : '🏙️ '}</span>
             {record.sourceLabel}
           </p>
           <p className={styles.detailCardTitle}>{record.title}</p>
@@ -65,7 +94,11 @@ export function IncidentDetailCard({ record, onClose }: IncidentDetailCardProps)
             Ir al módulo {record.source === 'SATELLITE' ? 'Satelital' : 'de Acequias'}
           </Button>
         </Link>
-        <Button variant="secondary" onClick={onClose}>
+        <Button
+          variant="secondary"
+          aria-label="Cerrar panel de detalle (Escape)"
+          onClick={onClose}
+        >
           Cerrar detalle
         </Button>
       </div>

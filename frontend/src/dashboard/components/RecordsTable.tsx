@@ -19,16 +19,16 @@ interface RecordsTableProps {
 export function RecordsTable({ records, selectedId, onSelectRecord }: RecordsTableProps) {
   return (
     <div className={styles.tableWrapper}>
-      <table className={styles.recordsTable}>
+      <table className={styles.recordsTable} aria-label="Tabla consolidada de incidentes hídricos">
         <thead>
           <tr>
-            <th>Origen</th>
-            <th>Canal / Ubicación</th>
-            <th>Municipio</th>
-            <th>Indicador</th>
-            <th>Estado</th>
-            <th>Fecha</th>
-            <th>Acción</th>
+            <th scope="col">Origen</th>
+            <th scope="col">Canal / Ubicación</th>
+            <th scope="col">Municipio</th>
+            <th scope="col">Indicador</th>
+            <th scope="col">Estado</th>
+            <th scope="col">Fecha</th>
+            <th scope="col">Acción</th>
           </tr>
         </thead>
         <tbody>
@@ -64,6 +64,9 @@ export function RecordsTable({ records, selectedId, onSelectRecord }: RecordsTab
                 <td data-label="Acción">
                   <Button
                     variant={isSelected ? 'primary' : 'secondary'}
+                    aria-pressed={isSelected}
+                    aria-controls="incident-detail-panel"
+                    aria-label={`Ver detalle de ${rec.title} (${rec.municipality})`}
                     onClick={() => onSelectRecord(rec)}
                   >
                     Ver detalle

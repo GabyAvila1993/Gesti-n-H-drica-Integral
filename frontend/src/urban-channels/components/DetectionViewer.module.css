@@ -63,10 +63,13 @@
 }
 
 .detection-box:hover,
+.detection-box:focus-visible,
 .detection-box--active {
   z-index: 30;
   border-width: 3px;
   transform: scale(1.015);
+  outline: 2px solid #ffffff;
+  outline-offset: 1px;
 }
 
 .detection-box--plastic:hover,
