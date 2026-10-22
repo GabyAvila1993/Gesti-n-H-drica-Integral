@@ -29,6 +29,10 @@ export const satelliteConfig = registerAs('satellite', () => ({
 
 export const visionConfig = registerAs('vision', () => ({
   provider: process.env.AI_VISION_PROVIDER || 'mock',
+  groq: {
+    apiKey: process.env.GROQ_API_KEY ?? '',
+    model: process.env.GROQ_VISION_MODEL || 'qwen/qwen3.8-27b',
+  },
   gemini: {
     apiKey: process.env.GEMINI_API_KEY ?? '',
   },

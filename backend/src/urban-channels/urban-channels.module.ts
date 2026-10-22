@@ -48,7 +48,11 @@ import { UrbanChannelsController } from './urban-channels.controller';
         if (config.provider === 'roboflow') {
           return new RoboflowVisionProvider(config.roboflow);
         }
-        return new MockVisionProvider(config.gemini.apiKey);
+        return new MockVisionProvider(
+          config.groq.apiKey,
+          config.groq.model,
+          config.gemini.apiKey,
+        );
       },
     },
     UrbanAnalysisService,

@@ -411,7 +411,7 @@ export function CrewTacticalView({ token, currentUser }: CrewTacticalViewProps) 
                 const lng = alert.location.coordinates[0];
                 return (
                   <CircleMarker
-                    key={alert.id}
+                    key={`active-marker-${alert.id}`}
                     center={[lat, lng]}
                     radius={activeTask?.alert.id === alert.id ? 11 : 8}
                     pathOptions={{ className: styles.alertMarkerCritical }}
@@ -479,7 +479,7 @@ export function CrewTacticalView({ token, currentUser }: CrewTacticalViewProps) 
 
                 return (
                   <article
-                    key={alert.id}
+                    key={`active-${alert.id}`}
                     className={classNames(
                       styles.tacticalTaskCard,
                       activeTask?.alert.id === alert.id && styles.tacticalTaskCardActive,
@@ -643,7 +643,7 @@ export function CrewTacticalView({ token, currentUser }: CrewTacticalViewProps) 
           ) : (
             <ul className={styles.taskHistoryList}>
               {taskHistory.map((task) => (
-                <li key={task.id} className={styles.taskHistoryItem}>
+                <li key={`history-${task.id}`} className={styles.taskHistoryItem}>
                   <span className={styles.taskHistoryCheck} aria-label="Tarea completada">
                     ✅
                   </span>

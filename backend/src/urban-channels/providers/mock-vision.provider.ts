@@ -5,6 +5,7 @@ import type { DetectedObject } from '../domain/detection';
 import {
   analyzeImagePixels,
   analyzeImageWithGemini,
+  analyzeImageWithGroq,
   type FullVisionAnalysis,
 } from './pixel-vision.analyzer';
 import type {
@@ -72,16 +73,22 @@ export function resolvePresetKey(image: VisionImageInput): PresetScenarioKey | n
 }
 
 /**
- * Ruteo inteligente con integración de Google Gemini (`gemini-1.5-flash`):
+ * Ruteo inteligente con integración de Groq LPU (Meta Llama 3.2 Vision) y fallback local:
  * - Si la petición proviene de una escena de prueba (`presetId` o SVG de muestra), devuelve
  *   las coordenadas del dataset estático `mendoza-urban.mock.json`.
  * - Si el usuario sube una foto real por Drag & Drop (JPG/PNG/WebP), envía el buffer a
- *   `gemini-1.5-flash` con fallback determinista automático en caso de error/cuota.
+ *   `llama-3.2-11b-vision-preview` en Groq con fallback determinista automático en caso de error/cuota.
  */
 export class MockVisionProvider implements VisionProvider {
-  readonly name = 'gemini-1.5-flash';
+  readonly name: string;
 
-  constructor(private readonly geminiApiKey?: string) {}
+  constructor(
+    private readonly groqApiKey?: string,
+    private readonly groqModel?: string,
+    private readonly geminiApiKey?: string,
+  ) {
+    this.name = groqModel ? `groq-${groqModel}` : 'groq-llama-3.2-vision';
+  }
 
   async analyzeImage(image: VisionImageInput): Promise<DetectedObject[]> {
     const presetKey = resolvePresetKey(image);
@@ -90,9 +97,20 @@ export class MockVisionProvider implements VisionProvider {
       return dataset.visionScenarios[presetKey];
     }
 
-    const apiKey = (this.geminiApiKey ?? process.env.GEMINI_API_KEY ?? '').trim();
-    if (apiKey.length > 0) {
-      const full = await analyzeImageWithGemini(image.buffer, image.mimetype, apiKey);
+    const groqKey = (this.groqApiKey ?? process.env.GROQ_API_KEY ?? '').trim();
+    if (groqKey.length > 0) {
+      const full = await analyzeImageWithGroq(
+        image.buffer,
+        image.mimetype,
+        groqKey,
+        this.groqModel,
+      );
+      return full.detections;
+    }
+
+    const geminiKey = (this.geminiApiKey ?? process.env.GEMINI_API_KEY ?? '').trim();
+    if (geminiKey.length > 0) {
+      const full = await analyzeImageWithGemini(image.buffer, image.mimetype, geminiKey);
       return full.detections;
     }
 
@@ -104,6 +122,12 @@ export class MockVisionProvider implements VisionProvider {
     if (presetKey) {
       return null;
     }
+
+    const groqKey = (this.groqApiKey ?? process.env.GROQ_API_KEY ?? '').trim();
+    if (groqKey.length > 0) {
+      return analyzeImageWithGroq(image.buffer, image.mimetype, groqKey, this.groqModel);
+    }
+
     return analyzeImageWithGemini(image.buffer, image.mimetype, this.geminiApiKey);
   }
 }

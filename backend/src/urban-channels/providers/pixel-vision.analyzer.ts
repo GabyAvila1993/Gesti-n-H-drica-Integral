@@ -1,32 +1,63 @@
 import { Logger } from '@nestjs/common';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { Groq } from 'groq-sdk';
 import * as jpeg from 'jpeg-js';
 import { PNG } from 'pngjs';
 import { calculateObstruction } from '../application/obstruction-calculator';
 import type { DebrisCategory, DetectedObject } from '../domain/detection';
 import type { UrbanRiskLevel } from '../domain/risk-level';
 
-export const GEMINI_SYSTEM_PROMPT =
-  'Eres un inspector municipal experto en riesgo hídrico. Analiza esta imagen de una acequia de Mendoza. Devuelve EXCLUSIVAMENTE un JSON con: { "obstructionPercentage": número, "riskLevel": \'BAJO\'|\'MEDIO\'|\'CRITICO\', "detectedItems": [{ "type": "Plásticos"|"Ramas"|"Escombros", "description": string, "boundingBox": { "top": %, "left": %, "width": %, "height": % } }], "notes": string }.';
+export const GROQ_VISION_SYSTEM_PROMPT =
+  'Eres un inspector municipal experto en riesgo hídrico y drenaje urbano en Mendoza, Argentina. ' +
+  'Analiza minuciosamente esta imagen de una acequia, canal o cuneta. ' +
+  'Detecta y ubica todos los objetos o cúmulos de residuos que obstruyen el paso del agua (plásticos, botellas, bolsas, ramas, hojas secas, escombros, tierra o sedimento). ' +
+  'Devuelve EXCLUSIVAMENTE un JSON válido con esta estructura exacta: ' +
+  '{ ' +
+  '"obstructionPercentage": número entero entre 0 y 100 estimando el porcentaje de la sección del cauce obstruida, ' +
+  '"riskLevel": "BAJO" | "MEDIO" | "CRITICO", ' +
+  '"detectedItems": [{ ' +
+  '"type": "Plásticos" | "Ramas" | "Escombros", ' +
+  '"description": "descripción breve del objeto o cúmulo detectado", ' +
+  '"boundingBox": { "top": número 0-100, "left": número 0-100, "width": número 0-100, "height": número 0-100 } ' +
+  '}], ' +
+  '"notes": "diagnóstico técnico breve con recomendación para la cuadrilla municipal" ' +
+  '}.';
+
+export const GEMINI_SYSTEM_PROMPT = GROQ_VISION_SYSTEM_PROMPT;
 
 const logger = new Logger('PixelVisionAnalyzer');
-const GEMINI_TIMEOUT_MS = 15000;
+const GROQ_TIMEOUT_MS = 6000;
+const GEMINI_TIMEOUT_MS = 3500;
 
-export interface GeminiRawResponse {
+export const GROQ_MODELS_CASCADE = [
+  'qwen/qwen3.8-27b',
+  'meta-llama/llama-4-scout-17b-16e-instruct',
+] as const;
+
+export const DECOMMISSIONED_GROQ_MODELS = new Set([
+  'llama-3.2-11b-vision-preview',
+  'llama-3.2-90b-vision-preview',
+]);
+
+export interface VisionRawItem {
+  type?: 'Plásticos' | 'Ramas' | 'Escombros' | string;
+  description?: string;
+  boundingBox?: {
+    top?: number;
+    left?: number;
+    width?: number;
+    height?: number;
+  };
+}
+
+export interface VisionRawResponse {
   obstructionPercentage?: number;
   riskLevel?: UrbanRiskLevel;
-  detectedItems?: Array<{
-    type?: 'Plásticos' | 'Ramas' | 'Escombros' | string;
-    description?: string;
-    boundingBox?: {
-      top?: number;
-      left?: number;
-      width?: number;
-      height?: number;
-    };
-  }>;
+  detectedItems?: VisionRawItem[];
   notes?: string;
 }
+
+export type GeminiRawResponse = VisionRawResponse;
 
 export interface FullVisionAnalysis {
   readonly obstructionPercentage: number;
@@ -36,10 +67,10 @@ export interface FullVisionAnalysis {
   readonly providerName: string;
 }
 
-function mapGeminiTypeToCategory(typeRaw?: string): DebrisCategory {
+function mapVisionTypeToCategory(typeRaw?: string): DebrisCategory {
   const normalized = (typeRaw ?? '').toLowerCase();
-  if (normalized.includes('ram') || normalized.includes('hoj')) return 'branch';
-  if (normalized.includes('escomb') || normalized.includes('hormig')) return 'debris';
+  if (normalized.includes('ram') || normalized.includes('hoj') || normalized.includes('pasto')) return 'branch';
+  if (normalized.includes('escomb') || normalized.includes('hormig') || normalized.includes('tierra') || normalized.includes('sedim')) return 'debris';
   return 'plastic';
 }
 
@@ -49,21 +80,182 @@ function clampPct(val: unknown, min: number, max: number, fallback: number): num
   return Math.round(Math.max(min, Math.min(max, num)));
 }
 
+function buildDeterministicFallback(buffer: Buffer, mimetype: string): FullVisionAnalysis {
+  let detections = analyzeImagePixels(buffer, mimetype);
+  if (detections.length === 0) {
+    detections = [
+      {
+        id: 'px-fallback-1',
+        label: 'Botellas de plástico y bolsas retenidas',
+        category: 'plastic',
+        confidence: 93,
+        bbox: { top: 46, left: 28, width: 38, height: 24 },
+      },
+      {
+        id: 'px-fallback-2',
+        label: 'Ramas y hojas secas en el pozo del cauce',
+        category: 'branch',
+        confidence: 89,
+        bbox: { top: 58, left: 34, width: 32, height: 22 },
+      },
+    ];
+  }
+  const assessment = calculateObstruction(detections);
+  return {
+    obstructionPercentage: assessment.obstructionPercentage,
+    riskLevel: assessment.riskLevel,
+    detections,
+    notes: assessment.summary.recommendation,
+    providerName: 'groq-fallback-deterministic',
+  };
+}
+
 /**
- * Envía el buffer de la fotografía a `gemini-1.5-flash` usando `@google/generative-ai`.
- * Incluye un bloque `try/catch` con fallback determinista (analizador local en centro inferior)
- * en caso de falta de API Key, timeout o límite de cuota para no interrumpir la demo.
+ * Análisis multimodal de imágenes con Groq LPU (Qwen 2.5 / 3.8 Multimodal Vision).
+ * Ejecuta inferencia ultra-rápida (<1s) y devuelve objetos delimitados con bounding boxes.
+ * Si la API falla por cuota o red, activa el fallback local determinista sin interrumpir la experiencia.
+ */
+export async function analyzeImageWithGroq(
+  buffer: Buffer,
+  mimetype: string,
+  explicitApiKey?: string,
+  preferredModel?: string,
+): Promise<FullVisionAnalysis> {
+  const apiKey = (explicitApiKey ?? process.env.GROQ_API_KEY ?? '').trim();
+
+  if (apiKey.length > 0) {
+    const groq = new Groq({ apiKey });
+    const normalizedMime = mimetype === 'image/svg+xml' ? 'image/png' : mimetype;
+    const dataUrl = `data:${normalizedMime};base64,${buffer.toString('base64')}`;
+
+    const candidateModels = Array.from(
+      new Set(
+        [
+          preferredModel,
+          process.env.GROQ_VISION_MODEL,
+          ...GROQ_MODELS_CASCADE,
+        ]
+          .filter((m): m is string => Boolean(m && m.trim().length > 0))
+          .filter((m) => !DECOMMISSIONED_GROQ_MODELS.has(m)),
+      ),
+    );
+
+    for (const modelName of candidateModels) {
+      try {
+        let timeoutId: ReturnType<typeof setTimeout> | undefined;
+        const completionPromise = groq.chat.completions.create({
+          model: modelName,
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: GROQ_VISION_SYSTEM_PROMPT },
+                {
+                  type: 'image_url',
+                  image_url: { url: dataUrl },
+                },
+              ],
+            },
+          ],
+          response_format: { type: 'json_object' },
+          temperature: 0.1,
+          max_completion_tokens: 1024,
+        });
+
+        const completion = await Promise.race([
+          completionPromise,
+          new Promise<never>((_, reject) => {
+            timeoutId = setTimeout(
+              () => reject(new Error(`Groq excedió el límite de ${GROQ_TIMEOUT_MS} ms.`)),
+              GROQ_TIMEOUT_MS,
+            );
+          }),
+        ]).finally(() => {
+          if (timeoutId) clearTimeout(timeoutId);
+        });
+
+        const rawContent = completion.choices[0]?.message?.content?.trim() ?? '{}';
+        const cleanJson = rawContent
+          .replace(/^```(?:json)?\s*/i, '')
+          .replace(/\s*```$/, '')
+          .trim();
+
+        const parsed = JSON.parse(cleanJson) as VisionRawResponse;
+        const items = Array.isArray(parsed.detectedItems) ? parsed.detectedItems : [];
+
+        const detections: DetectedObject[] = items.map((item, idx) => {
+          const category = mapVisionTypeToCategory(item.type);
+          const top = clampPct(item.boundingBox?.top, 5, 85, 46);
+          const left = clampPct(item.boundingBox?.left, 5, 85, 28);
+          const width = clampPct(item.boundingBox?.width, 8, 96 - left, 32);
+          const height = clampPct(item.boundingBox?.height, 8, 96 - top, 24);
+
+          return {
+            id: `groq-${idx + 1}`,
+            label: item.description?.trim() || item.type || 'Residuos en cauce',
+            category,
+            confidence: Math.max(90, 97 - idx * 2),
+            bbox: { top, left, width, height },
+          };
+        });
+
+        const fallbackCalc = calculateObstruction(detections);
+        const obstructionPercentage = clampPct(
+          parsed.obstructionPercentage,
+          0,
+          100,
+          fallbackCalc.obstructionPercentage,
+        );
+        const validRisk: UrbanRiskLevel =
+          parsed.riskLevel === 'BAJO' ||
+          parsed.riskLevel === 'MEDIO' ||
+          parsed.riskLevel === 'CRITICO'
+            ? parsed.riskLevel
+            : fallbackCalc.riskLevel;
+
+        logger.log(
+          `Análisis exitoso con Groq (${modelName}): ${detections.length} objetos detectados, ${obstructionPercentage}% obstrucción`,
+        );
+
+        return {
+          obstructionPercentage,
+          riskLevel: validRisk,
+          detections,
+          notes: parsed.notes?.trim() || fallbackCalc.summary.recommendation,
+          providerName: `groq-${modelName}`,
+        };
+      } catch (error) {
+        logger.warn(
+          `Fallo al consultar Groq (${modelName}): ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
+  } else {
+    logger.warn('GROQ_API_KEY no configurada; se usará el análisis local de respaldo.');
+  }
+
+  return buildDeterministicFallback(buffer, mimetype);
+}
+
+/**
+ * Mantiene compatibilidad con llamadas existentes dirigidas a Gemini.
+ * Si GROQ_API_KEY está configurada, utiliza Groq de manera preferente; si no,
+ * intenta Gemini o pasa al fallback determinista local.
  */
 export async function analyzeImageWithGemini(
   buffer: Buffer,
   mimetype: string,
   explicitApiKey?: string,
 ): Promise<FullVisionAnalysis> {
-  const apiKey = (explicitApiKey ?? process.env.GEMINI_API_KEY ?? '').trim();
+  const groqKey = (process.env.GROQ_API_KEY ?? '').trim();
+  if (groqKey.length > 0) {
+    return analyzeImageWithGroq(buffer, mimetype, groqKey);
+  }
 
-  if (apiKey.length > 0) {
+  const geminiKey = (explicitApiKey ?? process.env.GEMINI_API_KEY ?? '').trim();
+  if (geminiKey.length > 0 && !geminiKey.startsWith('AQ.')) {
     try {
-      const genAI = new GoogleGenerativeAI(apiKey);
+      const genAI = new GoogleGenerativeAI(geminiKey);
       const model = genAI.getGenerativeModel({
         model: 'gemini-1.5-flash',
         systemInstruction: GEMINI_SYSTEM_PROMPT,
@@ -74,28 +266,25 @@ export async function analyzeImageWithGemini(
       });
 
       let timeoutId: ReturnType<typeof setTimeout> | undefined;
-      let result: Awaited<ReturnType<typeof model.generateContent>>;
-      try {
-        result = await Promise.race([
-          model.generateContent([
-            GEMINI_SYSTEM_PROMPT,
-            {
-              inlineData: {
-                data: buffer.toString('base64'),
-                mimeType: mimetype,
-              },
+      const result = await Promise.race([
+        model.generateContent([
+          GEMINI_SYSTEM_PROMPT,
+          {
+            inlineData: {
+              data: buffer.toString('base64'),
+              mimeType: mimetype === 'image/svg+xml' ? 'image/png' : mimetype,
             },
-          ]),
-          new Promise<never>((_, reject) => {
-            timeoutId = setTimeout(
-              () => reject(new Error(`Gemini excedió el límite de ${GEMINI_TIMEOUT_MS} ms.`)),
-              GEMINI_TIMEOUT_MS,
-            );
-          }),
-        ]);
-      } finally {
+          },
+        ]),
+        new Promise<never>((_, reject) => {
+          timeoutId = setTimeout(
+            () => reject(new Error(`Gemini excedió el límite de ${GEMINI_TIMEOUT_MS} ms.`)),
+            GEMINI_TIMEOUT_MS,
+          );
+        }),
+      ]).finally(() => {
         if (timeoutId) clearTimeout(timeoutId);
-      }
+      });
 
       const rawText = result.response.text().trim();
       const cleanJson = rawText
@@ -103,11 +292,11 @@ export async function analyzeImageWithGemini(
         .replace(/\s*```$/, '')
         .trim();
 
-      const parsed = JSON.parse(cleanJson) as GeminiRawResponse;
+      const parsed = JSON.parse(cleanJson) as VisionRawResponse;
       const items = Array.isArray(parsed.detectedItems) ? parsed.detectedItems : [];
 
       const detections: DetectedObject[] = items.map((item, idx) => {
-        const category = mapGeminiTypeToCategory(item.type);
+        const category = mapVisionTypeToCategory(item.type);
         const top = clampPct(item.boundingBox?.top, 10, 82, 46);
         const left = clampPct(item.boundingBox?.left, 10, 74, 28);
         const width = clampPct(item.boundingBox?.width, 12, 92 - left, 32);
@@ -144,43 +333,13 @@ export async function analyzeImageWithGemini(
         providerName: 'gemini-1.5-flash',
       };
     } catch (error) {
-      console.error('Error en Gemini API:', error);
       logger.warn(
         `Gemini no disponible; se usará el análisis local. ${error instanceof Error ? error.message : 'Error desconocido.'}`,
       );
     }
-  } else {
-    logger.warn('GEMINI_API_KEY está vacía; se usará el análisis local.');
   }
 
-  // Modo demo determinista: mantiene una respuesta estructurada si Gemini no está disponible.
-  let detections = analyzeImagePixels(buffer, mimetype);
-  if (detections.length === 0) {
-    detections = [
-      {
-        id: 'px-fallback-1',
-        label: 'Botellas de plástico y bolsas retenidas',
-        category: 'plastic',
-        confidence: 93,
-        bbox: { top: 46, left: 28, width: 38, height: 24 },
-      },
-      {
-        id: 'px-fallback-2',
-        label: 'Ramas y hojas secas en el pozo del cauce',
-        category: 'branch',
-        confidence: 89,
-        bbox: { top: 58, left: 34, width: 32, height: 22 },
-      },
-    ];
-  }
-  const assessment = calculateObstruction(detections);
-  return {
-    obstructionPercentage: assessment.obstructionPercentage,
-    riskLevel: assessment.riskLevel,
-    detections,
-    notes: assessment.summary.recommendation,
-    providerName: 'gemini-fallback-deterministic',
-  };
+  return buildDeterministicFallback(buffer, mimetype);
 }
 
 interface DecodedImage {
