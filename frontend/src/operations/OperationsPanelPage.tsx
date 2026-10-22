@@ -8,20 +8,14 @@ import { CrewTacticalView } from './components/CrewTacticalView';
 import { ManagerStrategicView } from './components/ManagerStrategicView';
 import styles from './OperationsPanelPage.module.css';
 import { operationsApi } from './services/operations.api';
+import {
+  getRolePanelTitle,
+  loadStoredSession,
+  saveStoredSession,
+} from './session-storage';
 import type { LoginResponse, PublicUser } from './types';
 
-const SESSION_STORAGE_KEY = 'ghi_municipal_session_v1';
 const DEMO_DEFAULT_PASSWORD = 'mendoza2026';
-
-function loadStoredSession(): LoginResponse | null {
-  try {
-    const raw = window.localStorage.getItem(SESSION_STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as LoginResponse;
-  } catch {
-    return null;
-  }
-}
 
 export function OperationsPanelPage() {
   const [session, setSession] = useState<LoginResponse | null>(() => loadStoredSession());
@@ -46,7 +40,7 @@ export function OperationsPanelPage() {
     setLoginError(null);
     try {
       const response = await operationsApi.login(targetUser, targetPass);
-      window.localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(response));
+      saveStoredSession(response);
       setSession(response);
       setUsername('');
       setPassword('');
@@ -69,7 +63,7 @@ export function OperationsPanelPage() {
   };
 
   const handleLogout = () => {
-    window.localStorage.removeItem(SESSION_STORAGE_KEY);
+    saveStoredSession(null);
     setSession(null);
   };
 
@@ -149,7 +143,7 @@ export function OperationsPanelPage() {
     <div className={styles.page}>
       <header className={styles.sessionBar} aria-label="Sesión operativa activa">
         <div className={styles.sessionInfo}>
-          <span className={styles.roleBadge}>Rol: {session.user.role}</span>
+          <span className={styles.roleBadge}>{getRolePanelTitle(session.user.role)}</span>
           <span className={styles.municipalityTag}>Municipio: {session.user.municipality}</span>
           <span className={styles.sessionUserText}>
             {session.user.fullName} ({session.user.username})

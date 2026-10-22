@@ -1,6 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { NavLink, Outlet, useLocation, useMatches } from 'react-router-dom';
 import { appConfig } from '../../app.config';
+import {
+  getRolePanelTitle,
+  getRoleShortLabel,
+  useStoredSession,
+} from '../../operations/session-storage';
 import { PwaInstallButton } from '../../shared/pwa/PwaInstallButton';
 import { ThemeToggle } from '../../shared/theme/ThemeToggle';
 import { classNames } from '../../shared/ui/class-names';
@@ -8,38 +13,47 @@ import { ROUTES } from '../routes';
 import { BackendStatus } from './BackendStatus';
 import styles from './AppLayout.module.css';
 
-const NAV_ITEMS = [
-  { to: ROUTES.dashboard, label: 'Panel central', shortLabel: 'Panel', icon: '📊', end: true },
-  {
-    to: ROUTES.satellite,
-    label: 'Monitoreo satelital',
-    shortLabel: 'Satelital',
-    icon: '🛰️',
-    end: false,
-  },
-  {
-    to: ROUTES.urban,
-    label: 'Acequias urbanas',
-    shortLabel: 'Acequias',
-    icon: '🏙️',
-    end: false,
-  },
-  {
-    to: ROUTES.admin,
-    label: 'Panel Administrador',
-    shortLabel: 'Admin',
-    icon: '🛡️',
-    end: false,
-  },
-];
-
 export function AppLayout() {
   const matches = useMatches();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const session = useStoredSession();
+
+  const dynamicPanelTitle = getRolePanelTitle(session?.user.role);
+  const dynamicPanelShort = getRoleShortLabel(session?.user.role);
+
+  const navItems = useMemo(
+    () => [
+      { to: ROUTES.dashboard, label: 'Panel central', shortLabel: 'Panel', icon: '📊', end: true },
+      {
+        to: ROUTES.satellite,
+        label: 'Monitoreo satelital',
+        shortLabel: 'Satelital',
+        icon: '🛰️',
+        end: false,
+      },
+      {
+        to: ROUTES.urban,
+        label: 'Acequias urbanas',
+        shortLabel: 'Acequias',
+        icon: '🏙️',
+        end: false,
+      },
+      {
+        to: ROUTES.admin,
+        label: dynamicPanelTitle,
+        shortLabel: dynamicPanelShort,
+        icon: '🛡️',
+        end: false,
+      },
+    ],
+    [dynamicPanelShort, dynamicPanelTitle],
+  );
 
   const current = [...matches].reverse().find((m) => (m.handle as { title?: string })?.title);
-  const pageTitle = (current?.handle as { title?: string } | undefined)?.title ?? appConfig.name;
+  const routeTitle = (current?.handle as { title?: string } | undefined)?.title ?? appConfig.name;
+  const pageTitle =
+    location.pathname.startsWith(ROUTES.admin) ? dynamicPanelTitle : routeTitle;
 
   useEffect(() => {
     setMenuOpen(false);
@@ -88,7 +102,7 @@ export function AppLayout() {
         </div>
 
         <nav className={styles.sidebarNav} aria-label="Navegación principal">
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -139,7 +153,7 @@ export function AppLayout() {
         </main>
 
         <nav className={styles.bottomNav} aria-label="Navegación móvil rápida">
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

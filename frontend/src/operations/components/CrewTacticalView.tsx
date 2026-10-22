@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { CircleMarker, Polyline, Popup, Tooltip, useMap } from 'react-leaflet';
 import { ApiError } from '../../shared/api/http-client';
 import { BaseMap } from '../../shared/map/BaseMap';
@@ -27,6 +27,23 @@ function TacticalMapFocus({ target }: { target: { lat: number; lng: number } }) 
   return null;
 }
 
+/** Calcula la distancia geodésica en metros (fórmula de Haversine) para detectar desvíos > 50m. */
+function haversineDistanceMeters(
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number },
+): number {
+  const R = 6371000;
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const sinDLat = Math.sin(dLat / 2);
+  const sinDLng = Math.sin(dLng / 2);
+  const h =
+    sinDLat * sinDLat +
+    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * sinDLng * sinDLng;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
 const DEFAULT_BASE_BY_MUNICIPALITY: Record<string, { lat: number; lng: number }> = {
   Capital: { lat: -32.8865, lng: -68.8485 },
   'Godoy Cruz': { lat: -32.9245, lng: -68.8435 },
@@ -35,6 +52,8 @@ const DEFAULT_BASE_BY_MUNICIPALITY: Record<string, { lat: number; lng: number }>
   'Luján de Cuyo': { lat: -33.0055, lng: -68.8778 },
   Maipú: { lat: -32.9772, lng: -68.7885 },
 };
+
+const GPS_RECALC_THRESHOLD_METERS = 50;
 
 export function CrewTacticalView({ token, currentUser }: CrewTacticalViewProps) {
   const fallbackBase =
@@ -52,10 +71,17 @@ export function CrewTacticalView({ token, currentUser }: CrewTacticalViewProps) 
 
   const [activeAlertId, setActiveAlertId] = useState<string | null>(null);
 
-  // Ruteo vial OSRM bajo demanda ("Cómo llegar")
+  // Ruteo vial OSRM bajo demanda ("Cómo llegar") + rastreo continuo watchPosition
   const [streetRoutes, setStreetRoutes] = useState<StreetRouteOption[]>([]);
   const [routingAlertId, setRoutingAlertId] = useState<string | null>(null);
+  const [routingDestination, setRoutingDestination] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
   const [calculatingRoutes, setCalculatingRoutes] = useState(false);
+
+  const watchIdRef = useRef<number | null>(null);
+  const lastRoutedOriginRef = useRef<{ lat: number; lng: number }>(fallbackBase);
 
   // Evidencias fotográficas obligatorias ("Antes" y "Después") por alerta
   const [beforePhotoByAlert, setBeforePhotoByAlert] = useState<Record<string, File | undefined>>(
@@ -69,7 +95,7 @@ export function CrewTacticalView({ token, currentUser }: CrewTacticalViewProps) 
     text: string;
   } | null>(null);
 
-  const requestGpsPosition = useCallback(() => {
+  const syncSingleGpsFix = useCallback(() => {
     if (!('geolocation' in navigator)) {
       setCrewCoords(fallbackBase);
       setGpsStatus(
@@ -78,14 +104,15 @@ export function CrewTacticalView({ token, currentUser }: CrewTacticalViewProps) 
       return;
     }
 
-    setGpsStatus('Obteniendo señal GPS actual…');
+    setGpsStatus('Sincronizando señal GPS actual…');
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setCrewCoords({
+        const nextCoords = {
           lat: Number(position.coords.latitude.toFixed(5)),
           lng: Number(position.coords.longitude.toFixed(5)),
-        });
-        setGpsStatus('Señal GPS activa (navigator.geolocation en tiempo real)');
+        };
+        setCrewCoords(nextCoords);
+        setGpsStatus('Señal GPS activa en tiempo real');
       },
       () => {
         setCrewCoords(fallbackBase);
@@ -98,8 +125,62 @@ export function CrewTacticalView({ token, currentUser }: CrewTacticalViewProps) 
   }, [currentUser.municipality, fallbackBase]);
 
   useEffect(() => {
-    requestGpsPosition();
-  }, [requestGpsPosition]);
+    syncSingleGpsFix();
+  }, [syncSingleGpsFix]);
+
+  // Al activar el modo "Cómo llegar" (routingDestination !== null), activa navigator.geolocation.watchPosition
+  // y recalcula la ruta OSRM automáticamente si la cuadrilla se desplaza más de 50 metros.
+  useEffect(() => {
+    if (!routingDestination || !('geolocation' in navigator)) {
+      if (watchIdRef.current !== null && 'geolocation' in navigator) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
+      return;
+    }
+
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        const newPos = {
+          lat: Number(position.coords.latitude.toFixed(5)),
+          lng: Number(position.coords.longitude.toFixed(5)),
+        };
+        setCrewCoords(newPos);
+
+        const movedMeters = haversineDistanceMeters(lastRoutedOriginRef.current, newPos);
+        if (movedMeters > GPS_RECALC_THRESHOLD_METERS) {
+          lastRoutedOriginRef.current = newPos;
+          setGpsStatus(
+            `Desplazamiento detectado (${Math.round(movedMeters)} m) · Recalculando ruta OSRM…`,
+          );
+          setCalculatingRoutes(true);
+          void computeStreetRoutes(newPos, routingDestination)
+            .then((updatedRoutes) => {
+              setStreetRoutes(updatedRoutes);
+              setGpsStatus('Rastreo GPS continuo activo (watchPosition · Ruta OSRM actualizada)');
+            })
+            .finally(() => {
+              setCalculatingRoutes(false);
+            });
+        } else {
+          setGpsStatus('Rastreo GPS continuo activo (watchPosition · desvío < 50 m)');
+        }
+      },
+      () => {
+        setGpsStatus(
+          `Navegación activa desde base municipal (${currentUser.municipality})`,
+        );
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 5000 },
+    );
+
+    watchIdRef.current = watchId;
+
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+      watchIdRef.current = null;
+    };
+  }, [currentUser.municipality, routingDestination]);
 
   const loadTasks = useCallback(async () => {
     setLoading(true);
@@ -116,6 +197,7 @@ export function CrewTacticalView({ token, currentUser }: CrewTacticalViewProps) 
       } else {
         setActiveAlertId(null);
         setStreetRoutes([]);
+        setRoutingDestination(null);
       }
     } catch (err) {
       setError(
@@ -135,6 +217,8 @@ export function CrewTacticalView({ token, currentUser }: CrewTacticalViewProps) 
   const handleCalculateDirections = async (alertId: string, dest: { lat: number; lng: number }) => {
     setActiveAlertId(alertId);
     setRoutingAlertId(alertId);
+    setRoutingDestination(dest);
+    lastRoutedOriginRef.current = crewCoords;
     setCalculatingRoutes(true);
     try {
       const routes = await computeStreetRoutes(crewCoords, dest);
@@ -172,6 +256,7 @@ export function CrewTacticalView({ token, currentUser }: CrewTacticalViewProps) 
       if (routingAlertId === alertId) {
         setStreetRoutes([]);
         setRoutingAlertId(null);
+        setRoutingDestination(null);
       }
       await loadTasks();
     } catch (err) {
@@ -195,16 +280,13 @@ export function CrewTacticalView({ token, currentUser }: CrewTacticalViewProps) 
       }
     : null;
 
-  const alternativeRoutes = streetRoutes.filter((r) => !r.isFastest);
-  const fastestRoute = streetRoutes.find((r) => r.isFastest);
-
   return (
     <div className={styles.page}>
       <div className={styles.tacticalGrid}>
         <Card
           title={`Mapa Táctico Vial (OSRM) · ${currentUser.fullName}`}
           actions={
-            <Button variant="ghost" onClick={requestGpsPosition}>
+            <Button variant="ghost" onClick={syncSingleGpsFix}>
               📍 Actualizar mi GPS
             </Button>
           }
@@ -223,14 +305,17 @@ export function CrewTacticalView({ token, currentUser }: CrewTacticalViewProps) 
 
           {streetRoutes.length > 0 && (
             <div className={styles.routesSummaryBar} aria-label="Rutas viales calculadas">
-              {fastestRoute && (
-                <span className={styles.routeBadgeFastest}>🔵 {fastestRoute.label}</span>
+              {streetRoutes.map((route, index) =>
+                index === 0 ? (
+                  <span key={route.id} className={styles.routeBadgeFastest}>
+                    🔵 {route.label}
+                  </span>
+                ) : (
+                  <span key={route.id} className={styles.routeBadgeAlt}>
+                    ⚪ Alternativa: {route.label}
+                  </span>
+                ),
               )}
-              {alternativeRoutes.map((alt) => (
-                <span key={alt.id} className={styles.routeBadgeAlt}>
-                  ⚪ Alternativa: {alt.label}
-                </span>
-              ))}
             </div>
           )}
 
@@ -242,39 +327,55 @@ export function CrewTacticalView({ token, currentUser }: CrewTacticalViewProps) 
               <CircleMarker
                 center={[crewCoords.lat, crewCoords.lng]}
                 radius={10}
-                pathOptions={{ className: styles.crewPositionBlueDot }}
+                pathOptions={{
+                  color: '#ffffff',
+                  weight: 3,
+                  fillColor: '#2563eb',
+                  fillOpacity: 1,
+                  className: styles.crewPositionBlueDot,
+                }}
               >
                 <Tooltip direction="top" permanent>
                   🔵 Mi Cuadrilla ({currentUser.username})
                 </Tooltip>
               </CircleMarker>
 
-              {/* Rutas viales alternativas por calles (líneas grises con +N min) */}
-              {alternativeRoutes.map((alt) => (
-                <Polyline
-                  key={alt.id}
-                  positions={alt.coordinates}
-                  pathOptions={{ className: styles.routeAlternativeLine }}
-                >
-                  <Tooltip permanent direction="center">
-                    +{alt.diffMinutes} min ({alt.distanceKm} km)
-                  </Tooltip>
-                </Polyline>
-              ))}
-
-              {/* Ruta más rápida por calles reales (línea azul gruesa) */}
-              {fastestRoute && (
-                <Polyline
-                  key={fastestRoute.id}
-                  positions={fastestRoute.coordinates}
-                  pathOptions={{ className: styles.routeFastestLine }}
-                >
-                  <Tooltip permanent direction="top">
-                    <strong>Camino más rápido</strong> ({fastestRoute.durationMinutes} min ·{' '}
-                    {fastestRoute.distanceKm} km)
-                  </Tooltip>
-                </Polyline>
-              )}
+              {/* Renderizado condicional del array de rutas OSRM:
+                  - index === 0 (más rápida): azul intenso (#2563eb) y mayor grosor
+                  - index > 0 (alternativas): gris oscuro (#64748b), punteada y más fina */}
+              {streetRoutes.map((route, index) => {
+                const isPrimaryRoute = index === 0;
+                return (
+                  <Polyline
+                    key={`${route.id}-${index}`}
+                    positions={route.coordinates}
+                    pathOptions={{
+                      color: isPrimaryRoute ? '#2563eb' : '#64748b',
+                      weight: isPrimaryRoute ? 6.5 : 4,
+                      opacity: isPrimaryRoute ? 0.96 : 0.84,
+                      dashArray: isPrimaryRoute ? undefined : '8 6',
+                      lineCap: 'round',
+                      lineJoin: 'round',
+                      className: isPrimaryRoute
+                        ? styles.routeFastestLine
+                        : styles.routeAlternativeLine,
+                    }}
+                  >
+                    <Tooltip permanent direction={isPrimaryRoute ? 'top' : 'center'}>
+                      {isPrimaryRoute ? (
+                        <>
+                          <strong>Camino más rápido</strong> ({route.durationMinutes} min ·{' '}
+                          {route.distanceKm} km)
+                        </>
+                      ) : (
+                        <>
+                          +{route.diffMinutes} min ({route.distanceKm} km)
+                        </>
+                      )}
+                    </Tooltip>
+                  </Polyline>
+                );
+              })}
 
               {/* Marcadores de las tareas asignadas a la cuadrilla */}
               {overview?.pendingTasks.map(({ alert }) => {
@@ -389,53 +490,77 @@ export function CrewTacticalView({ token, currentUser }: CrewTacticalViewProps) 
                       </span>
 
                       <div className={styles.evidenceGrid}>
-                        <label
+                        <div
                           className={classNames(
                             styles.evidenceSlot,
                             beforeFile && styles.evidenceSlotReady,
                           )}
                         >
-                          <span className={styles.evidenceLabel}>1. Foto ANTES *</span>
-                          <input
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp"
-                            className={styles.evidenceFileInput}
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              setBeforePhotoByAlert((prev) => ({
-                                ...prev,
-                                [alert.id]: file,
-                              }));
-                            }}
-                          />
-                          {beforeFile && (
-                            <span className={styles.evidenceFileName}>✔ {beforeFile.name}</span>
-                          )}
-                        </label>
+                          <span className={styles.evidenceLabel}>1. Evidencia ANTES *</span>
+                          <div className={styles.uploadRow}>
+                            <label className={styles.uploadModernBtn}>
+                              <span aria-hidden="true">📷</span>
+                              <span>Subir foto Antes</span>
+                              <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                className={styles.evidenceFileInput}
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  setBeforePhotoByAlert((prev) => ({
+                                    ...prev,
+                                    [alert.id]: file,
+                                  }));
+                                }}
+                              />
+                            </label>
+                            {beforeFile ? (
+                              <span className={styles.evidenceFileName}>
+                                ✔ {beforeFile.name}
+                              </span>
+                            ) : (
+                              <span className={styles.evidenceFileEmpty}>
+                                Sin archivo seleccionado
+                              </span>
+                            )}
+                          </div>
+                        </div>
 
-                        <label
+                        <div
                           className={classNames(
                             styles.evidenceSlot,
                             afterFile && styles.evidenceSlotReady,
                           )}
                         >
-                          <span className={styles.evidenceLabel}>2. Foto DESPUÉS *</span>
-                          <input
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp"
-                            className={styles.evidenceFileInput}
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              setAfterPhotoByAlert((prev) => ({
-                                ...prev,
-                                [alert.id]: file,
-                              }));
-                            }}
-                          />
-                          {afterFile && (
-                            <span className={styles.evidenceFileName}>✔ {afterFile.name}</span>
-                          )}
-                        </label>
+                          <span className={styles.evidenceLabel}>2. Evidencia DESPUÉS *</span>
+                          <div className={styles.uploadRow}>
+                            <label className={styles.uploadModernBtn}>
+                              <span aria-hidden="true">📷</span>
+                              <span>Subir foto Después</span>
+                              <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                className={styles.evidenceFileInput}
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  setAfterPhotoByAlert((prev) => ({
+                                    ...prev,
+                                    [alert.id]: file,
+                                  }));
+                                }}
+                              />
+                            </label>
+                            {afterFile ? (
+                              <span className={styles.evidenceFileName}>
+                                ✔ {afterFile.name}
+                              </span>
+                            ) : (
+                              <span className={styles.evidenceFileEmpty}>
+                                Sin archivo seleccionado
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
 
                       {!bothPhotosReady && (

@@ -490,16 +490,22 @@
 
 .evidenceGrid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: var(--space-2);
+}
+
+@media (min-width: 640px) {
+  .evidenceGrid {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 .evidenceSlot {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
-  padding: var(--space-2);
-  border-radius: var(--radius-sm);
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
   border: 1px dashed var(--color-border);
   background-color: var(--color-surface);
 }
@@ -507,6 +513,7 @@
 .evidenceSlotReady {
   border-style: solid;
   border-color: #16a34a;
+  background-color: rgba(22, 163, 74, 0.04);
 }
 
 .evidenceLabel {
@@ -515,9 +522,39 @@
   color: var(--color-text);
 }
 
-.evidenceFileInput {
+.uploadRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.uploadModernBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  background-color: #2563eb;
+  color: #ffffff;
   font-size: var(--font-size-xs);
-  width: 100%;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: background-color 0.15s ease, transform 0.1s ease;
+  user-select: none;
+}
+
+.uploadModernBtn:hover {
+  background-color: #1d4ed8;
+}
+
+.uploadModernBtn:active {
+  transform: translateY(1px);
+}
+
+.evidenceFileInput {
+  display: none;
 }
 
 .evidenceFileName {
@@ -525,6 +562,12 @@
   color: #15803d;
   font-weight: 600;
   word-break: break-all;
+}
+
+.evidenceFileEmpty {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  font-style: italic;
 }
 
 .evidenceMissingHint {

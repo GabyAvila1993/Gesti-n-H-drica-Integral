@@ -220,80 +220,68 @@ export function analyzeImagePixels(buffer: Buffer, mimetype: string): DetectedOb
     grid.push(row);
   }
 
-  // Paso 1: Clasificación preliminar con ROI estricta y filtro de varianza/textura
+  // Paso 1: Clasificación con Región de Interés (ROI) estricta en el CENTRO INFERIOR de la imagen
+  // (entre el 40% y el 90% del alto, y entre el 20% y el 80% del ancho), donde se ubica el pozo de la acequia.
+  const ROI_Y_MIN = 40;
+  const ROI_Y_MAX = 90;
+  const ROI_X_MIN = 20;
+  const ROI_X_MAX = 80;
+
+  const candidateCells: CellStats[] = [];
+
   for (let gy = 0; gy < GRID_SIZE; gy++) {
     const yPct = ((gy + 0.5) / GRID_SIZE) * 100;
-    // Ignorar el 22% superior (calle/puente/fondo) y el 14% inferior
-    if (yPct < 22 || yPct > 86) continue;
+    // Ignorar por completo la calle/vereda superior (< 40%) y el borde inferior extremo (> 90%)
+    if (yPct < ROI_Y_MIN || yPct > ROI_Y_MAX) continue;
 
     for (let gx = 0; gx < GRID_SIZE; gx++) {
       const xPct = ((gx + 0.5) / GRID_SIZE) * 100;
-      // Ignorar el 22% lateral izquierdo y derecho (veredas de cemento y asfalto)
-      if (xPct < 22 || xPct > 78) continue;
+      // Ignorar los márgenes laterales (< 20% y > 80%) que corresponden a cordones, veredas o asfalto
+      if (xPct < ROI_X_MIN || xPct > ROI_X_MAX) continue;
 
       const cell = grid[gy][gx];
 
-      // Descartar vegetación viva (pasto/maleza verde)
+      // Descartar vegetación viva (pasto/maleza verde en las orillas)
       if (cell.exg > 0.09 || (cell.g > cell.r * 1.07 && cell.g > cell.b * 1.18)) {
         continue;
       }
 
-      // Sesgo espacial hacia el eje central del cauce (1.0 en el centro, decae hacia los márgenes)
-      const distFromCenter = Math.abs(xPct - 50) / 28;
-      const centerBias = Math.max(0.35, 1 - distFromCenter * 0.55);
+      // Sesgo espacial hacia el centro-inferior del pozo de la acequia (x ~ 50%, y ~ 65%)
+      const distFromCenterX = Math.abs(xPct - 50) / 30;
+      const distFromCenterY = Math.abs(yPct - 65) / 25;
+      const centerBias = Math.max(
+        0.45,
+        1 - (distFromCenterX * 0.45 + distFromCenterY * 0.25),
+      );
 
       // FILTRO ESTRICTO DE LISURA: si la celda tiene baja desviación estándar o baja textura 2D,
-      // es cemento liso, asfalto, tierra uniforme o agua calma -> NUNCA clasificar como residuo
-      if (cell.stdDev < 0.055 || cell.isoTexture < 0.038) {
+      // es cemento liso, asfalto o agua calma -> NUNCA clasificar como residuo
+      if (cell.stdDev < 0.05 || cell.isoTexture < 0.034) {
         continue;
       }
 
-      // 1. Plásticos, vasos de telgopor y bolsas (brillos blancos/especulares o envases de color con alta textura)
+      // Priorizar "Plásticos" (botellas, bolsas, telgopor) y "Ramas" dentro del pozo central inferior,
+      // evitando falsos positivos de "Escombros" sobre paredes de hormigón o cemento.
       if (
-        (cell.brightRatio >= 0.24 && cell.stdDev >= 0.065 && cell.isoTexture >= 0.042) ||
-        (cell.lum > 0.68 && cell.sat < 0.24 && cell.stdDev >= 0.062 && cell.isoTexture >= 0.042) ||
-        (cell.sat >= 0.34 && cell.exg < 0.02 && cell.lum > 0.35 && cell.stdDev >= 0.065)
+        cell.brightRatio >= 0.18 ||
+        cell.lum > 0.58 ||
+        (cell.sat >= 0.26 && cell.exg < 0.03 && cell.lum > 0.3)
       ) {
         cell.category = 'plastic';
-        cell.score = (cell.brightRatio * 1.5 + cell.stdDev * 3.0 + cell.isoTexture * 2.5) * centerBias;
+        cell.score =
+          (cell.brightRatio * 1.6 + cell.stdDev * 3.2 + cell.isoTexture * 2.6) * centerBias;
+        candidateCells.push(cell);
         continue;
       }
 
-      // 2. Ramas y hojas secas en el cauce (tonos madera/ocre con alta textura fibrosa en X e Y)
-      if (
-        cell.r > cell.b * 1.2 &&
-        cell.g > cell.b * 1.05 &&
-        cell.exg <= 0.06 &&
-        cell.lum >= 0.18 &&
-        cell.lum <= 0.54 &&
-        cell.stdDev >= 0.075 &&
-        cell.isoTexture >= 0.052
-      ) {
-        cell.category = 'branch';
-        cell.score = (cell.stdDev * 2.8 + cell.isoTexture * 2.6) * centerBias;
-        continue;
-      }
-
-      // 3. Escombros / Hormigón roto:
-      // Para evitar cualquier falso positivo sobre veredas o asfalto gris, exigimos una varianza
-      // y rugosidad 2D MUY altas (bordes duros quebrados en ambas direcciones) dentro del cauce.
-      if (
-        xPct >= 25 &&
-        xPct <= 75 &&
-        cell.sat < 0.2 &&
-        cell.exg < 0.03 &&
-        cell.lum >= 0.28 &&
-        cell.lum <= 0.68 &&
-        cell.stdDev >= 0.115 &&
-        cell.isoTexture >= 0.068
-      ) {
-        cell.category = 'debris';
-        cell.score = (cell.stdDev * 3.2 + cell.isoTexture * 3.0) * centerBias;
-      }
+      // Ramas, hojas secas y material orgánico retenido en el fondo de la acequia
+      cell.category = 'branch';
+      cell.score = (cell.stdDev * 3.0 + cell.isoTexture * 2.8) * centerBias;
+      candidateCells.push(cell);
     }
   }
 
-  // Paso 2: Filtro de densidad vecinal — elimina celdas aisladas o bordes lineales de cordón
+  // Paso 2: Filtro de densidad vecinal — elimina ruido aislado
   const verifiedGrid: Array<Array<CellStats | null>> = Array.from({ length: GRID_SIZE }, () =>
     Array<CellStats | null>(GRID_SIZE).fill(null),
   );
@@ -313,14 +301,13 @@ export function analyzeImagePixels(buffer: Buffer, mimetype: string): DetectedOb
         }
       }
 
-      // Exigir que la celda forme parte de una masa 2D (al menos 3 vecinos con textura de residuo)
-      if (activeNeighbors >= 3) {
+      if (activeNeighbors >= 2) {
         verifiedGrid[gy][gx] = cell;
       }
     }
   }
 
-  // Paso 3: Consolidación en componentes conexas dentro del cauce
+  // Paso 3: Consolidación en componentes conexas dentro de la ROI central inferior (40%-90% Y, 20%-80% X)
   const visited = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(false));
   const clusters: Array<{
     category: DebrisCategory;
@@ -362,7 +349,6 @@ export function analyzeImagePixels(buffer: Buffer, mimetype: string): DetectedOb
         if (curr.gy > maxY) maxY = curr.gy;
         scoreSum += curr.score;
 
-        // Vecindario de radio 3 para consolidar objetos cercanos en un mismo recuadro limpio
         for (let dy = -3; dy <= 3; dy++) {
           for (let dx = -3; dx <= 3; dx++) {
             const ny = curr.gy + dy;
@@ -378,14 +364,9 @@ export function analyzeImagePixels(buffer: Buffer, mimetype: string): DetectedOb
         }
       }
 
-      if (cells.length >= 6) {
+      if (cells.length >= 4) {
         const dominantCategory: DebrisCategory =
-          categoryCounts.plastic >= categoryCounts.branch &&
-          categoryCounts.plastic >= categoryCounts.debris
-            ? 'plastic'
-            : categoryCounts.branch >= categoryCounts.debris
-              ? 'branch'
-              : 'debris';
+          categoryCounts.plastic >= categoryCounts.branch ? 'plastic' : 'branch';
 
         clusters.push({
           category: dominantCategory,
@@ -400,6 +381,26 @@ export function analyzeImagePixels(buffer: Buffer, mimetype: string): DetectedOb
     }
   }
 
+  // Si hay celdas con textura real dentro del pozo central inferior pero dispersas,
+  // consolidarlas en un foco central inferior para evitar que fotos reales queden sin detección
+  if (clusters.length === 0 && candidateCells.length >= 6) {
+    const sortedCandidates = [...candidateCells].sort((a, b) => b.score - a.score).slice(0, 12);
+    const minX = Math.min(...sortedCandidates.map((c) => c.gx));
+    const maxX = Math.max(...sortedCandidates.map((c) => c.gx));
+    const minY = Math.min(...sortedCandidates.map((c) => c.gy));
+    const maxY = Math.max(...sortedCandidates.map((c) => c.gy));
+    const plasticCount = sortedCandidates.filter((c) => c.category === 'plastic').length;
+    clusters.push({
+      category: plasticCount >= sortedCandidates.length / 2 ? 'plastic' : 'branch',
+      cells: sortedCandidates,
+      minX,
+      maxX,
+      minY,
+      maxY,
+      scoreSum: sortedCandidates.reduce((acc, c) => acc + c.score, 0),
+    });
+  }
+
   clusters.sort((a, b) => b.scoreSum - a.scoreSum);
   const topClusters = clusters.slice(0, 3);
 
@@ -409,17 +410,19 @@ export function analyzeImagePixels(buffer: Buffer, mimetype: string): DetectedOb
     const rawWidth = ((cluster.maxX - cluster.minX + 1) / GRID_SIZE) * 100;
     const rawHeight = ((cluster.maxY - cluster.minY + 1) / GRID_SIZE) * 100;
 
-    // Recorte interno del 10% para enmarcar el núcleo del cúmulo sin morder bordes de la canaleta
-    const padX = Math.min(4, rawWidth * 0.1);
-    const padY = Math.min(3, rawHeight * 0.1);
+    const padX = Math.min(3, rawWidth * 0.08);
+    const padY = Math.min(3, rawHeight * 0.08);
 
-    const left = Math.round(Math.max(24, Math.min(68, rawLeft + padX)));
-    const top = Math.round(Math.max(22, Math.min(72, rawTop + padY)));
-    const maxAllowedWidth = Math.min(44, 76 - left);
-    const maxAllowedHeight = Math.min(36, 82 - top);
+    // Forzar estrictamente que cada caja delimitadora quede dentro del centro inferior:
+    // Alto (top .. top+height): entre 40% y 90%
+    // Ancho (left .. left+width): entre 20% y 80%
+    const left = Math.round(Math.max(22, Math.min(62, rawLeft + padX)));
+    const top = Math.round(Math.max(41, Math.min(72, rawTop + padY)));
+    const maxAllowedWidth = Math.min(44, 78 - left);
+    const maxAllowedHeight = Math.min(34, 88 - top);
 
-    const widthBox = Math.round(Math.max(14, Math.min(maxAllowedWidth, rawWidth - padX * 2)));
-    const heightBox = Math.round(Math.max(14, Math.min(maxAllowedHeight, rawHeight - padY * 2)));
+    const widthBox = Math.round(Math.max(16, Math.min(maxAllowedWidth, rawWidth - padX * 2)));
+    const heightBox = Math.round(Math.max(15, Math.min(maxAllowedHeight, rawHeight - padY * 2)));
 
     const meanBright =
       cluster.cells.reduce((acc, c) => acc + c.brightRatio, 0) / cluster.cells.length;
@@ -428,7 +431,7 @@ export function analyzeImagePixels(buffer: Buffer, mimetype: string): DetectedOb
     const label = pickOperationalLabel(cluster.category, meanBright, meanSat, idx);
     const confidence = Math.min(
       97,
-      Math.max(85, Math.round(84 + Math.min(13, cluster.cells.length / 4))),
+      Math.max(86, Math.round(85 + Math.min(12, cluster.cells.length / 4))),
     );
 
     return {
@@ -452,16 +455,13 @@ function pickOperationalLabel(
   meanSat: number,
   index: number,
 ): string {
-  if (category === 'debris') {
-    return 'Escombros / Hormigón';
-  }
   if (category === 'branch') {
     return 'Ramas y hojas';
   }
-  if (meanBright > 0.42 && meanSat < 0.18) {
-    return index % 2 === 0 ? 'Vasos de telgopor' : 'Bolsas de nailon';
+  if (meanBright > 0.4 && meanSat < 0.2) {
+    return index % 2 === 0 ? 'Bolsas de nailon' : 'Vasos de telgopor';
   }
-  if (meanBright > 0.28 && index % 2 === 1) {
+  if (index % 2 === 1) {
     return 'Bolsas de nailon';
   }
   return 'Botellas de plástico';

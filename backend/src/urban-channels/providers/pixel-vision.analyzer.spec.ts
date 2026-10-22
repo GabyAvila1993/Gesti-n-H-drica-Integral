@@ -45,9 +45,9 @@ function buildSyntheticAcequiaPng(): Buffer {
         b = 40;
       }
 
-      // Cúmulo de botellas y vasos de telgopor en el centro del cauce (x: 56..98, y: 40..84)
+      // Cúmulo de botellas, bolsas y ramas en el centro inferior del pozo de la acequia (x: 52..104, y: 52..102)
       // con alta textura 2D tanto en X como en Y
-      if (x >= 56 && x <= 98 && y >= 40 && y <= 84) {
+      if (x >= 52 && x <= 104 && y >= 52 && y <= 102) {
         const pattern = (x * 7 + y * 11) % 5;
         if (pattern === 0 || pattern === 1) {
           r = 248;
@@ -75,16 +75,26 @@ function buildSyntheticAcequiaPng(): Buffer {
 }
 
 describe('Ruteo inteligente y análisis píxel por píxel', () => {
-  it('analiza píxel por píxel una imagen PNG real, detecta el cúmulo en el cauce e ignora vereda gris, asfalto y pasto', () => {
+  it('analiza píxel por píxel una imagen PNG real, detecta el cúmulo en el centro inferior del cauce e ignora vereda gris, asfalto y pasto', () => {
     const buffer = buildSyntheticAcequiaPng();
     const detections = analyzeImagePixels(buffer, 'image/png');
 
     assert.ok(detections.length >= 1, 'Debe detectar el cúmulo de residuos dentro del cauce');
     for (const det of detections) {
-      assert.notEqual(det.category, 'debris', 'No debe confundir la vereda gris lisa ni el asfalto con escombros');
-      assert.ok(det.bbox.top >= 22, 'Nunca debe invadir el 20% superior de calle/asfalto');
-      assert.ok(det.bbox.left >= 24, 'Nunca debe invadir la vereda lateral izquierda');
-      assert.ok(det.bbox.left + det.bbox.width <= 76, 'Nunca debe invadir la orilla derecha');
+      assert.ok(
+        det.category === 'plastic' || det.category === 'branch',
+        'Debe clasificar como Plásticos o Ramas sin confundir cemento liso con Escombros',
+      );
+      assert.ok(det.bbox.top >= 40, 'La caja debe ubicarse en el centro inferior (>= 40% del alto)');
+      assert.ok(
+        det.bbox.top + det.bbox.height <= 90,
+        'La caja nunca debe superar el 90% del alto',
+      );
+      assert.ok(det.bbox.left >= 20, 'La caja debe mantenerse dentro del margen >= 20% del ancho');
+      assert.ok(
+        det.bbox.left + det.bbox.width <= 80,
+        'La caja nunca debe superar el 80% del ancho',
+      );
     }
   });
 
