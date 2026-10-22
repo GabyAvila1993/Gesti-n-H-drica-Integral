@@ -78,6 +78,7 @@ export async function analyzeImageWithGemini(
       try {
         result = await Promise.race([
           model.generateContent([
+            GEMINI_SYSTEM_PROMPT,
             {
               inlineData: {
                 data: buffer.toString('base64'),
