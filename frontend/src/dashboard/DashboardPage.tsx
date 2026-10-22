@@ -59,7 +59,7 @@ export function DashboardPage() {
 
       {state.status === 'loading' && (
         <div className={styles.dashboardPageCentered}>
-          <Spinner label="Consolidando indicadores satelitales y urbanos…" />
+          <Spinner label="Cargando indicadores del panel…" />
         </div>
       )}
 
@@ -79,30 +79,30 @@ export function DashboardPage() {
         <>
           <section className={styles.dashboardPageKpis} aria-label="Indicadores clave">
             <MetricCard
-              label="Fugas Satelitales Detectadas"
+              label="Filtraciones en Canales"
               value={state.metrics.satelliteLeaksDetected}
-              subtitle={`${state.metrics.satelliteLeaksCritical} en nivel crítico · ${state.metrics.canalsMonitored} canales auditados`}
+              subtitle={`${state.metrics.satelliteLeaksCritical} en nivel crítico · ${state.metrics.canalsMonitored} canales monitoreados`}
               icon="🛰️"
               tone={state.metrics.satelliteLeaksCritical > 0 ? 'critical' : 'info'}
             />
             <MetricCard
               label="Acequias en Riesgo Crítico"
               value={state.metrics.urbanAlertsCritical}
-              subtitle={`${state.metrics.urbanAlertsTotal} alertas urbanas registradas esta semana`}
+              subtitle={`${state.metrics.urbanAlertsTotal} alertas urbanas registradas`}
               icon="🏙️"
               tone={state.metrics.urbanAlertsCritical > 0 ? 'critical' : 'warning'}
             />
             <MetricCard
-              label="Obstrucción Urbana Promedio"
+              label="Obstrucción Promedio"
               value={`${state.metrics.averageUrbanObstructionPct}%`}
-              subtitle="Promedio de sección ocupada en cauces inspeccionados"
+              subtitle="Promedio de obstrucción en acequias relevadas"
               icon="🌊"
               tone={state.metrics.averageUrbanObstructionPct >= 25 ? 'warning' : 'low'}
             />
             <MetricCard
-              label="Incidentes Críticos Totales"
+              label="Incidentes Críticos Activos"
               value={state.metrics.criticalIncidentsTotal}
-              subtitle="Prioridad inmediata para cuadrillas de Irrigación y municipios"
+              subtitle="Requieren atención prioritaria en terreno"
               icon="🚨"
               tone={state.metrics.criticalIncidentsTotal > 0 ? 'critical' : 'low'}
             />
@@ -116,7 +116,7 @@ export function DashboardPage() {
               onSelectRecord={handleSelectRecord}
             />
 
-            <Card title="Inspección del incidente seleccionado">
+            <Card title="Detalle del incidente seleccionado">
               {selectedRecord ?? state.records[0] ? (
                 <IncidentDetailCard
                   record={(selectedRecord ?? state.records[0])!}
@@ -145,7 +145,7 @@ export function DashboardPage() {
               <EmptyState
                 icon="✅"
                 title="Sin incidentes para los filtros aplicados"
-                description="Probá cambiando el municipio, origen o nivel de severidad."
+                description="Probá cambiando el municipio, origen o nivel de riesgo."
               />
             ) : (
               <RecordsTable

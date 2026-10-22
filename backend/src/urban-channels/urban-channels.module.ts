@@ -25,7 +25,7 @@ import { UrbanChannelsController } from './urban-channels.controller';
           if (!ALLOWED_IMAGE_MIMES.has(file.mimetype)) {
             callback(
               new BadRequestException(
-                `Tipo MIME bloqueado (${file.mimetype}). Solo se permiten imágenes JPG, PNG, WebP o SVG.`,
+                `Formato de archivo no permitido (${file.mimetype}). Solo se aceptan imágenes JPG, PNG, WebP o SVG.`,
               ),
               false,
             );
@@ -42,10 +42,10 @@ import { UrbanChannelsController } from './urban-channels.controller';
       provide: VISION_PROVIDER,
       inject: [visionConfig.KEY],
       useFactory: (config: VisionConfig): VisionProvider => {
-        if (config.provider === 'huggingface') {
+        if (config.provider === 'huggingface' || Boolean(config.huggingface.token)) {
           return new HuggingFaceVisionProvider(config.huggingface);
         }
-        if (config.provider === 'roboflow') {
+        if (config.provider === 'roboflow' || Boolean(config.roboflow.apiKey)) {
           return new RoboflowVisionProvider(config.roboflow);
         }
         return new MockVisionProvider();

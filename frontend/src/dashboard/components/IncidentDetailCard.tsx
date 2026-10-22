@@ -69,19 +69,19 @@ export function IncidentDetailCard({
           <dd className={styles.detailCardValue}>{record.metricLabel}</dd>
         </div>
         <div className={styles.detailCardBox}>
-          <dt className={styles.detailCardLabel}>Fecha de detección</dt>
+          <dt className={styles.detailCardLabel}>Fecha</dt>
           <dd className={styles.detailCardValue}>
             {dateFormatter.format(new Date(record.detectedAt))}
           </dd>
         </div>
         <div className={styles.detailCardBox}>
-          <dt className={styles.detailCardLabel}>Coordenadas WGS84</dt>
+          <dt className={styles.detailCardLabel}>Ubicación</dt>
           <dd className={styles.detailCardValue}>
             {lat.toFixed(4)}, {lng.toFixed(4)}
           </dd>
         </div>
         <div className={styles.detailCardBox}>
-          <dt className={styles.detailCardLabel}>Código de registro</dt>
+          <dt className={styles.detailCardLabel}>Código</dt>
           <dd className={styles.detailCardValue}>{record.id}</dd>
         </div>
       </dl>
@@ -91,7 +91,7 @@ export function IncidentDetailCard({
       <div className={styles.detailCardActions}>
         <Link to={moduleRoute}>
           <Button variant="primary">
-            Ir al módulo {record.source === 'SATELLITE' ? 'Satelital' : 'de Acequias'}
+            Ir a {record.source === 'SATELLITE' ? 'Monitoreo satelital' : 'Acequias urbanas'}
           </Button>
         </Link>
         <Button

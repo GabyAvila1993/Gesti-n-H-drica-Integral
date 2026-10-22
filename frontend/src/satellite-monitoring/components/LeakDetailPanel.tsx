@@ -30,30 +30,30 @@ export function LeakDetailPanel({ alert, onClose }: LeakDetailPanelProps) {
 
       <dl className={styles.leakDetailGrid}>
         <div className={styles.leakDetailField}>
-          <dt className={styles.leakDetailLabel}>Índice MNDWI</dt>
-          <dd className={styles.leakDetailValue}>{alert.mndwi.toFixed(3)}</dd>
+          <dt className={styles.leakDetailLabel}>Nivel de humedad</dt>
+          <dd className={styles.leakDetailValue}>{alert.mndwi.toFixed(2)}</dd>
         </div>
         <div className={styles.leakDetailField}>
-          <dt className={styles.leakDetailLabel}>Detectado</dt>
+          <dt className={styles.leakDetailLabel}>Fecha</dt>
           <dd className={styles.leakDetailValue}>{dateFormatter.format(new Date(alert.detectedAt))}</dd>
         </div>
         <div className={styles.leakDetailField}>
-          <dt className={styles.leakDetailLabel}>Coordenadas</dt>
+          <dt className={styles.leakDetailLabel}>Ubicación</dt>
           <dd className={classNames(styles.leakDetailValue, styles.leakDetailValueMono)}>
-            {lat.toFixed(5)}, {lng.toFixed(5)}
+            {lat.toFixed(4)}, {lng.toFixed(4)}
           </dd>
         </div>
         <div className={styles.leakDetailField}>
-          <dt className={styles.leakDetailLabel}>Escena</dt>
+          <dt className={styles.leakDetailLabel}>Registro</dt>
           <dd className={classNames(styles.leakDetailValue, styles.leakDetailValueMono)}>
-            {alert.sceneId}
+            {alert.id}
           </dd>
         </div>
       </dl>
 
       <p className={styles.leakDetailHint}>
-        Un MNDWI positivo junto al cauce indica suelo saturado o agua superficial fuera del canal,
-        compatible con fisuras o desbordes del revestimiento.
+        Se detectó humedad fuera del cauce. Se recomienda enviar personal a revisar posibles
+        filtraciones o roturas en los márgenes del canal.
       </p>
 
       <Button variant="secondary" onClick={onClose}>

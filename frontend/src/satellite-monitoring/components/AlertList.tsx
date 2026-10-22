@@ -27,7 +27,7 @@ export function AlertList({ alerts, selectedId, onSelect }: AlertListProps) {
               <span className={styles.alertListCanal}>{alert.canalName}</span>
               <br />
               <span className={styles.alertListMeta}>
-                {alert.municipality} · MNDWI {alert.mndwi.toFixed(2)}
+                {alert.municipality} · Humedad {alert.mndwi.toFixed(2)}
               </span>
             </span>
             <RiskBadge level={alert.severity} />

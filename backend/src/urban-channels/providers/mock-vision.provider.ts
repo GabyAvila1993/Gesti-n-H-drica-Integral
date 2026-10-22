@@ -2,7 +2,12 @@ import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { DetectedObject } from '../domain/detection';
-import type { VisionImageInput, VisionProvider } from './vision-provider.interface';
+import { analyzeImagePixels } from './pixel-vision.analyzer';
+import type {
+  PresetScenarioKey,
+  VisionImageInput,
+  VisionProvider,
+} from './vision-provider.interface';
 
 export interface UrbanDatasetJson {
   readonly municipalityCenters: Record<string, { lat: number; lng: number }>;
@@ -19,7 +24,7 @@ export interface UrbanDatasetJson {
     readonly obstructionPercentage: number;
     readonly riskLevel: 'BAJO' | 'MEDIO' | 'CRITICO';
     readonly detectionsCount: number;
-    readonly scenarioKey: 'critico' | 'medio' | 'bajo';
+    readonly scenarioKey: PresetScenarioKey;
     readonly notes?: string;
     readonly minutesAgo: number;
     readonly lat: number;
@@ -41,46 +46,42 @@ export async function loadUrbanDataset(): Promise<UrbanDatasetJson> {
 }
 
 /**
- * Proveedor simulado de visión por computadora que lee los escenarios de detección
- * de forma asíncrona desde `mendoza-urban.mock.json`, manteniendo el código 100% agnóstico a los datos.
+ * Resuelve si la imagen corresponde a uno de los botones de escena de prueba (demo rápida)
+ * y devuelve su clave en `mendoza-urban.mock.json`, o `null` si es una foto real subida por el usuario.
  */
-export class MockVisionProvider implements VisionProvider {
-  readonly name = 'mock';
-  private scenariosCache: DetectedObject[][] | null = null;
-
-  private async getScenarios(): Promise<DetectedObject[][]> {
-    if (this.scenariosCache) {
-      return this.scenariosCache;
-    }
-    const dataset = await loadUrbanDataset();
-    this.scenariosCache = [
-      dataset.visionScenarios.critico,
-      dataset.visionScenarios.medio,
-      dataset.visionScenarios.bajo,
-    ];
-    return this.scenariosCache;
+export function resolvePresetKey(image: VisionImageInput): PresetScenarioKey | null {
+  if (image.presetId === 'critico' || image.presetId === 'medio' || image.presetId === 'bajo') {
+    return image.presetId;
   }
 
+  const normalizedName = image.originalname.toLowerCase();
+  if (image.mimetype === 'image/svg+xml' && normalizedName.startsWith('acequia-obstruccion-')) {
+    if (normalizedName.includes('crit')) return 'critico';
+    if (normalizedName.includes('med')) return 'medio';
+    return 'bajo';
+  }
+
+  return null;
+}
+
+/**
+ * Ruteo inteligente:
+ * - Si la petición proviene de una escena de prueba (`presetId` o SVG de muestra), devuelve
+ *   las coordenadas del dataset estático `mendoza-urban.mock.json`.
+ * - Si el usuario sube una foto real por Drag & Drop (JPG/PNG), analiza la imagen píxel por píxel
+ *   para ubicar dinámicamente los cúmulos de residuos reales en la foto.
+ */
+export class MockVisionProvider implements VisionProvider {
+  readonly name = 'pixel-analyzer';
+
   async analyzeImage(image: VisionImageInput): Promise<DetectedObject[]> {
-    const scenarios = await this.getScenarios();
-    const normalizedName = image.originalname.toLowerCase();
-
-    if (normalizedName.includes('crit') || normalizedName.includes('sever')) {
-      return scenarios[0];
-    }
-    if (normalizedName.includes('med') || normalizedName.includes('moder')) {
-      return scenarios[1];
-    }
-    if (normalizedName.includes('baj') || normalizedName.includes('lev')) {
-      return scenarios[2];
+    const presetKey = resolvePresetKey(image);
+    if (presetKey) {
+      const dataset = await loadUrbanDataset();
+      return dataset.visionScenarios[presetKey];
     }
 
-    // Selección determinística según el nombre y tamaño del archivo subido
-    const hash = Array.from(image.originalname).reduce(
-      (acc, char) => (acc * 31 + char.charCodeAt(0)) >>> 0,
-      image.size >>> 0,
-    );
-    const index = hash % scenarios.length;
-    return scenarios[index];
+    // Análisis dinámico píxel por píxel sobre la imagen real subida por el usuario
+    return analyzeImagePixels(image.buffer, image.mimetype);
   }
 }

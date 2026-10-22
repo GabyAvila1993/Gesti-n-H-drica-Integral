@@ -1,5 +1,7 @@
 import { ServiceUnavailableException } from '@nestjs/common';
 import type { DetectedObject } from '../domain/detection';
+import { loadUrbanDataset, resolvePresetKey } from './mock-vision.provider';
+import { extractImageDimensions } from './pixel-vision.analyzer';
 import type { VisionImageInput, VisionProvider } from './vision-provider.interface';
 
 export interface RoboflowCredentials {
@@ -8,8 +10,8 @@ export interface RoboflowCredentials {
 }
 
 /**
- * Adaptador preparado para Roboflow Hosted Inference API.
- * Todas las credenciales provienen del archivo .env.
+ * Adaptador para Roboflow Hosted Inference API.
+ * Soporta ruteo rápido para escenas de prueba y validación de API Key para fotos personalizadas.
  */
 export class RoboflowVisionProvider implements VisionProvider {
   readonly name = 'roboflow';
@@ -17,9 +19,15 @@ export class RoboflowVisionProvider implements VisionProvider {
   constructor(private readonly credentials: RoboflowCredentials) {}
 
   async analyzeImage(image: VisionImageInput): Promise<DetectedObject[]> {
+    const presetKey = resolvePresetKey(image);
+    if (presetKey) {
+      const dataset = await loadUrbanDataset();
+      return dataset.visionScenarios[presetKey];
+    }
+
     if (!this.credentials.apiUrl || !this.credentials.apiKey) {
       throw new ServiceUnavailableException(
-        'Faltan ROBOFLOW_API_URL o ROBOFLOW_API_KEY en el archivo .env. Usá AI_VISION_PROVIDER=mock para el prototipo.',
+        'Configura tu API Key para análisis de fotos personalizadas',
       );
     }
 
@@ -30,8 +38,16 @@ export class RoboflowVisionProvider implements VisionProvider {
       body: image.buffer.toString('base64'),
     });
 
+    if (response.status === 401 || response.status === 403) {
+      throw new ServiceUnavailableException(
+        'Configura tu API Key para análisis de fotos personalizadas',
+      );
+    }
+
     if (!response.ok) {
-      throw new ServiceUnavailableException(`Roboflow API respondió con estado ${response.status}`);
+      throw new ServiceUnavailableException(
+        `El servicio de análisis devolvió el código HTTP ${response.status}.`,
+      );
     }
 
     const data = (await response.json()) as {
@@ -46,24 +62,36 @@ export class RoboflowVisionProvider implements VisionProvider {
       }>;
     };
 
-    const imgW = data.image?.width || 1000;
-    const imgH = data.image?.height || 1000;
+    const fallbackDims = extractImageDimensions(image.buffer, image.mimetype);
+    const imgW = data.image?.width || fallbackDims?.width || 800;
+    const imgH = data.image?.height || fallbackDims?.height || 600;
 
-    return (data.predictions ?? []).map((pred, idx) => ({
-      id: `rf-${idx}`,
-      label: pred.class,
-      category: pred.class.toLowerCase().includes('plast')
+    return (data.predictions ?? []).map((pred, idx) => {
+      const lower = pred.class.toLowerCase();
+      const category = lower.includes('plast') || lower.includes('bot') || lower.includes('bag')
         ? 'plastic'
-        : pred.class.toLowerCase().includes('branch')
+        : lower.includes('branch') || lower.includes('ram')
           ? 'branch'
-          : 'debris',
-      confidence: Math.round(pred.confidence * 100),
-      bbox: {
-        top: Math.max(0, Math.round(((pred.y - pred.height / 2) / imgH) * 100)),
-        left: Math.max(0, Math.round(((pred.x - pred.width / 2) / imgW) * 100)),
-        width: Math.min(100, Math.round((pred.width / imgW) * 100)),
-        height: Math.min(100, Math.round((pred.height / imgH) * 100)),
-      },
-    }));
+          : 'debris';
+      const label =
+        category === 'plastic'
+          ? 'Botellas de plástico'
+          : category === 'branch'
+            ? 'Ramas y hojas'
+            : 'Escombros / Hormigón';
+
+      return {
+        id: `rf-${idx + 1}`,
+        label,
+        category,
+        confidence: Math.round(pred.confidence * 100),
+        bbox: {
+          top: Math.max(0, Math.round(((pred.y - pred.height / 2) / imgH) * 100)),
+          left: Math.max(0, Math.round(((pred.x - pred.width / 2) / imgW) * 100)),
+          width: Math.min(100, Math.round((pred.width / imgW) * 100)),
+          height: Math.min(100, Math.round((pred.height / imgH) * 100)),
+        },
+      };
+    });
   }
 }

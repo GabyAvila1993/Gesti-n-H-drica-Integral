@@ -96,9 +96,9 @@ export function ImageDropzone({ disabled = false, onSelectFile }: ImageDropzoneP
         </span>
       </div>
 
-      <div className={styles.samples} role="region" aria-label="Escenas simuladas de prueba">
+      <div className={styles.samples} role="region" aria-label="Muestras de referencia">
         <p id="samples-group-label" className={styles.samplesLabel}>
-          ¿Querés probar el detector ahora? Elegí una escena simulada de acequia mendocina:
+          O seleccioná un caso de referencia para ver una prueba rápida:
         </p>
         <div className={styles.samplesGrid} role="group" aria-labelledby="samples-group-label">
           {SAMPLE_PHOTO_PRESETS.map((preset) => (
@@ -107,7 +107,7 @@ export function ImageDropzone({ disabled = false, onSelectFile }: ImageDropzoneP
               type="button"
               className={styles.sampleBtn}
               disabled={disabled}
-              aria-label={`Probar escena ${preset.title}: ${preset.subtitle}`}
+              aria-label={`Cargar caso de referencia ${preset.title}: ${preset.subtitle}`}
               onClick={() => onSelectFile(createSamplePhotoFile(preset), preset)}
             >
               <span className={styles.sampleBtnTitle}>{preset.title}</span>

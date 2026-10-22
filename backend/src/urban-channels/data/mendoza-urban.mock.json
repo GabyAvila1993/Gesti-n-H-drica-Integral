@@ -13,29 +13,22 @@
         "id": "det-crit-1",
         "label": "Botellas de plástico",
         "category": "plastic",
-        "confidence": 98,
-        "bbox": { "top": 8, "left": 6, "width": 88, "height": 46 }
+        "confidence": 97,
+        "bbox": { "top": 24, "left": 26, "width": 42, "height": 22 }
       },
       {
         "id": "det-crit-2",
         "label": "Vasos de telgopor",
         "category": "plastic",
-        "confidence": 96,
-        "bbox": { "top": 42, "left": 8, "width": 84, "height": 44 }
+        "confidence": 95,
+        "bbox": { "top": 42, "left": 28, "width": 40, "height": 20 }
       },
       {
         "id": "det-crit-3",
         "label": "Bolsas de nailon",
         "category": "plastic",
-        "confidence": 94,
-        "bbox": { "top": 24, "left": 14, "width": 72, "height": 54 }
-      },
-      {
-        "id": "det-crit-4",
-        "label": "Ramas y hojas",
-        "category": "branch",
-        "confidence": 92,
-        "bbox": { "top": 62, "left": 12, "width": 76, "height": 30 }
+        "confidence": 93,
+        "bbox": { "top": 56, "left": 30, "width": 36, "height": 18 }
       }
     ],
     "medio": [
@@ -44,14 +37,14 @@
         "label": "Escombros / Hormigón",
         "category": "debris",
         "confidence": 95,
-        "bbox": { "top": 52, "left": 4, "width": 38, "height": 40 }
+        "bbox": { "top": 58, "left": 10, "width": 26, "height": 24 }
       },
       {
         "id": "det-med-2",
         "label": "Ramas y hojas",
         "category": "branch",
-        "confidence": 91,
-        "bbox": { "top": 34, "left": 24, "width": 24, "height": 18 }
+        "confidence": 90,
+        "bbox": { "top": 38, "left": 30, "width": 22, "height": 16 }
       }
     ],
     "bajo": [
@@ -60,21 +53,21 @@
         "label": "Botellas de plástico",
         "category": "plastic",
         "confidence": 96,
-        "bbox": { "top": 16, "left": 22, "width": 52, "height": 30 }
+        "bbox": { "top": 25, "left": 31, "width": 34, "height": 24 }
       },
       {
         "id": "det-low-2",
-        "label": "Vasos de telgopor",
+        "label": "Bolsas de nailon",
         "category": "plastic",
         "confidence": 93,
-        "bbox": { "top": 44, "left": 24, "width": 48, "height": 24 }
+        "bbox": { "top": 43, "left": 32, "width": 32, "height": 22 }
       },
       {
         "id": "det-low-3",
         "label": "Escombros / Hormigón",
         "category": "debris",
         "confidence": 91,
-        "bbox": { "top": 66, "left": 26, "width": 39, "height": 18 }
+        "bbox": { "top": 57, "left": 33, "width": 30, "height": 18 }
       }
     ]
   },
@@ -83,12 +76,12 @@
       "id": "urb-seed-1",
       "analysisId": "seed-analysis-1",
       "municipality": "Capital",
-      "address": "Av. Emilio Civit y Belgrano (Rejilla sifón norte)",
-      "obstructionPercentage": 98,
+      "address": "Av. Emilio Civit y Belgrano",
+      "obstructionPercentage": 91,
       "riskLevel": "CRITICO",
-      "detectionsCount": 4,
+      "detectionsCount": 3,
       "scenarioKey": "critico",
-      "notes": "Tapón masivo de botellas de plástico, vasos de telgopor y bolsas de nailon. Llevar horquillas, rastrillos y camión volcador.",
+      "notes": "Acequia tapada por botellas de plástico, vasos de telgopor y bolsas de nailon. Llevar horquillas, rastrillos y camión.",
       "minutesAgo": 45,
       "lat": -32.8884,
       "lng": -68.8562
@@ -98,11 +91,11 @@
       "analysisId": "seed-analysis-2",
       "municipality": "Godoy Cruz",
       "address": "San Martín Sur y Paso de los Andes",
-      "obstructionPercentage": 59,
+      "obstructionPercentage": 47,
       "riskLevel": "MEDIO",
       "detectionsCount": 2,
       "scenarioKey": "medio",
-      "notes": "Losa grande de hormigón caída en margen izquierdo y ramas acumuladas. Requiere barreta, maza y retiro de escombros.",
+      "notes": "Bloque de hormigón en el margen izquierdo y ramas en el cauce. Llevar barreta, maza y pala.",
       "minutesAgo": 120,
       "lat": -32.9278,
       "lng": -68.8471
@@ -112,11 +105,11 @@
       "analysisId": "seed-analysis-3",
       "municipality": "Guaymallén",
       "address": "Bandera de los Andes y Urquiza (Villa Nueva)",
-      "obstructionPercentage": 85,
+      "obstructionPercentage": 84,
       "riskLevel": "CRITICO",
       "detectionsCount": 3,
       "scenarioKey": "bajo",
-      "notes": "Canaleta estrecha tapada por botellas de plástico, vasos de telgopor y tierra sedimentada. Llevar palas anchas y bolsas de consorcio.",
+      "notes": "Canaleta tapada con botellas de plástico, bolsas de nailon y tierra. Llevar palas anchas y bolsas de consorcio.",
       "minutesAgo": 185,
       "lat": -32.8995,
       "lng": -68.8095
@@ -126,11 +119,11 @@
       "analysisId": "seed-analysis-4",
       "municipality": "Las Heras",
       "address": "Av. San Martín y Roca (Panquehua)",
-      "obstructionPercentage": 59,
+      "obstructionPercentage": 47,
       "riskLevel": "MEDIO",
       "detectionsCount": 2,
       "scenarioKey": "medio",
-      "notes": "Bloque de hormigón desprendido en el talud izquierdo y ramas secas. Enviar cuadrilla con herramientas de demolición liviana.",
+      "notes": "Escombros de hormigón en la orilla izquierda y ramas acumuladas.",
       "minutesAgo": 260,
       "lat": -32.8495,
       "lng": -68.8365
@@ -140,11 +133,11 @@
       "analysisId": "seed-analysis-5",
       "municipality": "Maipú",
       "address": "Calle Ozamis y Maza",
-      "obstructionPercentage": 85,
+      "obstructionPercentage": 84,
       "riskLevel": "CRITICO",
       "detectionsCount": 3,
       "scenarioKey": "bajo",
-      "notes": "Acequia obstruida al 85% por acumulación de botellas de plástico y sedimento. Despachar cuadrilla de limpieza manual.",
+      "notes": "Acumulación de botellas de plástico y sedimento que frena el paso del agua.",
       "minutesAgo": 340,
       "lat": -32.9765,
       "lng": -68.7865

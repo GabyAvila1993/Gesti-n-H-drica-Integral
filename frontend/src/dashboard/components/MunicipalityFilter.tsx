@@ -10,9 +10,9 @@ const MUNICIPALITY_OPTIONS: readonly SelectOption[] = [
 ];
 
 const SOURCE_OPTIONS: readonly SelectOption[] = [
-  { value: 'ALL', label: 'Todos los orígenes (Satélite + Urbano)' },
-  { value: 'SATELLITE', label: '🛰️ Solo fugas satelitales' },
-  { value: 'URBAN', label: '🏙️ Solo acequias urbanas' },
+  { value: 'ALL', label: 'Todos los orígenes (Canales + Acequias)' },
+  { value: 'SATELLITE', label: '🛰️ Filtraciones en canales' },
+  { value: 'URBAN', label: '🏙️ Acequias urbanas' },
 ];
 
 const SEVERITY_OPTIONS: readonly SelectOption[] = [
@@ -54,7 +54,7 @@ export function MunicipalityFilter({
         onChange={(e) => onSourceChange(e.target.value as IncidentSource | 'ALL')}
       />
       <Select
-        label="Severidad"
+        label="Nivel de riesgo"
         options={SEVERITY_OPTIONS}
         value={severity}
         onChange={(e) => onSeverityChange(e.target.value as Severity | 'ALL')}

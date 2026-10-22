@@ -34,7 +34,7 @@ export function LeakMarker({ alert, selected, onSelect }: LeakMarkerProps) {
       eventHandlers={{ click: () => onSelect(alert) }}
     >
       <Tooltip direction="top" offset={[0, -8]} className={styles.mapTooltip}>
-        Fuga potencial · MNDWI {alert.mndwi.toFixed(2)}
+        Posible filtración · {alert.canalName} ({alert.municipality})
       </Tooltip>
     </CircleMarker>
   );

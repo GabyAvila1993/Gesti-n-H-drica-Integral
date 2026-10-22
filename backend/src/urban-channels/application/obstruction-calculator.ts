@@ -4,7 +4,7 @@ import type { UrbanAnalysisSummary } from '../domain/urban-alert';
 
 /**
  * Factor de retención hidráulica según el tipo de residuo:
- * - escombros y ramas traban el flujo con mayor severidad que envases aislados.
+ * - escombros y ramas traban el paso del agua con mayor impacto que envases aislados.
  */
 const CATEGORY_HYDRAULIC_WEIGHT: Record<DebrisCategory, number> = {
   plastic: 1.45,
@@ -27,7 +27,7 @@ export function classifyObstructionRisk(obstructionPercentage: number): UrbanRis
 
 /**
  * Calcula el porcentaje estimado de obstrucción del cauce a partir de la geometría
- * relativa de los objetos detectados y su factor de retención hidráulica.
+ * de los residuos detectados dentro del corredor útil de la acequia.
  */
 export function calculateObstruction(detections: DetectedObject[]): ObstructionAssessment {
   let weightedAreaSum = 0;
@@ -38,7 +38,6 @@ export function calculateObstruction(detections: DetectedObject[]): ObstructionA
   for (const item of detections) {
     const widthClamped = Math.max(0, Math.min(100, item.bbox.width));
     const heightClamped = Math.max(0, Math.min(100, item.bbox.height));
-    // Proporción del cuadro (0 a 100) ponderada por categoría sobre la sección útil del cauce
     const boxAreaPct = (widthClamped * heightClamped) / 100;
     const confidenceFactor = Math.max(0.5, Math.min(1, item.confidence / 100));
     weightedAreaSum += boxAreaSumContribution(
@@ -52,8 +51,9 @@ export function calculateObstruction(detections: DetectedObject[]): ObstructionA
     else debrisCount++;
   }
 
-  // Escala respecto a la sección efectiva del cauce en la toma fotográfica (~58% del encuadre)
-  const rawObstruction = (weightedAreaSum / 58) * 100;
+  // Escala respecto al corredor interno del cauce en la foto (~36% del encuadre total,
+  // descontando veredas, paredes laterales y puentes)
+  const rawObstruction = (weightedAreaSum / 36) * 100;
   const obstructionPercentage = Math.min(98, Math.max(0, Math.round(rawObstruction)));
   const riskLevel = classifyObstructionRisk(obstructionPercentage);
 
@@ -64,7 +64,7 @@ export function calculateObstruction(detections: DetectedObject[]): ObstructionA
       plasticCount,
       branchCount,
       debrisCount,
-      recommendation: buildRecommendation(riskLevel, obstructionPercentage),
+      recommendation: buildRecommendation(riskLevel),
     },
   };
 }
@@ -73,12 +73,12 @@ function boxAreaSumContribution(areaPct: number, weight: number, confidence: num
   return areaPct * weight * confidence;
 }
 
-function buildRecommendation(riskLevel: UrbanRiskLevel, pct: number): string {
+function buildRecommendation(riskLevel: UrbanRiskLevel): string {
   if (riskLevel === 'CRITICO') {
-    return `Obstrucción severa (${pct}%). Riesgo inminente de anegamiento ante tormenta convectiva. Despachar cuadrilla de limpieza de urgencia.`;
+    return 'Acequia obstruida. Requiere limpieza inmediata por riesgo de desborde.';
   }
   if (riskLevel === 'MEDIO') {
-    return `Obstrucción moderada (${pct}%). Programar desobstrucción preventiva de rejillas y puente peatonal en las próximas 24 h.`;
+    return 'Obstrucción parcial del cauce. Programar limpieza preventiva en el sector.';
   }
-  return `Flujo libre con residuos menores (${pct}%). Mantener cronograma habitual de barrido y mantenimiento de acequias.`;
+  return 'Cauce despejado con residuos aislados. Mantener limpieza habitual.';
 }

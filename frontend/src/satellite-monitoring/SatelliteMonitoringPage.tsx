@@ -18,7 +18,7 @@ import type { LeakAlert } from './types';
 import styles from './SatelliteMonitoringPage.module.css';
 
 const SEVERITY_OPTIONS: readonly SelectOption[] = [
-  { value: 'ALL', label: 'Todas las severidades' },
+  { value: 'ALL', label: 'Todos los niveles' },
   { value: 'CRITICO', label: 'Crítico' },
   { value: 'MEDIO', label: 'Medio' },
   { value: 'BAJO', label: 'Bajo' },
@@ -59,7 +59,7 @@ export function SatelliteMonitoringPage() {
   if (state.status === 'loading') {
     return (
       <div className={styles.satellitePageCentered}>
-        <Spinner label="Procesando escena satelital…" />
+        <Spinner label="Cargando mapa de canales y alertas…" />
       </div>
     );
   }
@@ -70,7 +70,7 @@ export function SatelliteMonitoringPage() {
         <EmptyState
           tone="error"
           icon="🛰️"
-          title="No se pudieron obtener los datos satelitales"
+          title="No se pudieron cargar los datos de canales"
           description={state.message}
           action={<Button onClick={reload}>Reintentar</Button>}
         />
@@ -110,11 +110,11 @@ export function SatelliteMonitoringPage() {
           <div className={styles.satellitePageStats}>
             <div className={styles.stat}>
               <p className={styles.statValue}>{stats.canals}</p>
-              <p className={styles.statLabel}>Canales auditados</p>
+              <p className={styles.statLabel}>Canales monitoreados</p>
             </div>
             <div className={styles.stat}>
               <p className={styles.statValue}>{stats.alerts}</p>
-              <p className={styles.statLabel}>Fugas visibles</p>
+              <p className={styles.statLabel}>Alertas visibles</p>
             </div>
             <div className={styles.stat}>
               <p className={classNames(styles.statValue, styles.statValueCritical)}>
@@ -125,7 +125,7 @@ export function SatelliteMonitoringPage() {
           </div>
         )}
 
-        <Card title="Filtros de auditoría">
+        <Card title="Filtros">
           <div className={styles.satellitePageFilters}>
             <Select
               label="Canal"
@@ -137,7 +137,7 @@ export function SatelliteMonitoringPage() {
               }}
             />
             <Select
-              label="Severidad"
+              label="Nivel de riesgo"
               options={SEVERITY_OPTIONS}
               value={severityFilter}
               onChange={(e) => {
@@ -153,12 +153,12 @@ export function SatelliteMonitoringPage() {
             <LeakDetailPanel alert={selected} onClose={() => setSelected(null)} />
           </Card>
         ) : (
-          <Card title="Alertas detectadas">
+          <Card title="Alertas de filtración">
             {filteredAlerts.length === 0 ? (
               <EmptyState
                 icon="✅"
                 title="Sin alertas para el filtro actual"
-                description="No hay anomalías MNDWI que coincidan con el canal o severidad seleccionados."
+                description="No hay filtraciones registradas para el canal o nivel de riesgo seleccionado."
               />
             ) : (
               <AlertList alerts={filteredAlerts} selectedId={null} onSelect={setSelected} />

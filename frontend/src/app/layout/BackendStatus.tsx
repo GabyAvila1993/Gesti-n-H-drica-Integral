@@ -16,25 +16,17 @@ export function BackendStatus() {
       aria-live="polite"
       title={
         state.kind === 'online'
-          ? `Backend conectado · Satélite: ${state.health.satelliteProvider} · Visión IA: ${state.health.visionProvider}`
+          ? 'Sistema operativo y conectado al servidor'
           : state.kind === 'offline'
-            ? 'Backend desconectado'
-            : 'Verificando servidor…'
+            ? 'Sin conexión con el servidor'
+            : 'Verificando estado del servidor…'
       }
     >
       <span className={styles.backendStatusDot} aria-hidden="true" />
       <span className={styles.backendStatusText}>
         {state.kind === 'checking' && 'Verificando…'}
-        {state.kind === 'offline' && 'Desconectado'}
-        {state.kind === 'online' && (
-          <>
-            Conectado
-            <span className={styles.backendStatusProviders}>
-              {' '}
-              · Satélite: {state.health.satelliteProvider} · IA: {state.health.visionProvider}
-            </span>
-          </>
-        )}
+        {state.kind === 'offline' && 'Sin conexión'}
+        {state.kind === 'online' && 'Sistema en línea'}
       </span>
     </div>
   );

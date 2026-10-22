@@ -70,7 +70,7 @@ export function UnifiedMap({
               eventHandlers={{ click: () => handleSelectById(recId) }}
             >
               <Tooltip direction="top" offset={[0, -8]} className={styles.pinTooltip}>
-                🛰️ Fuga · {leak.canalName} ({leak.municipality}) · MNDWI {leak.mndwi.toFixed(2)}
+                🛰️ Posible filtración · {leak.canalName} ({leak.municipality})
               </Tooltip>
             </CircleMarker>
           );
@@ -103,22 +103,22 @@ export function UnifiedMap({
         <UnifiedMapFocus selected={selectedRecord} />
       </BaseMap>
 
-      <aside className={styles.legend} aria-label="Leyenda del mapa unificado">
-        <p className={styles.legendTitle}>Capas del Mapa Unificado</p>
+      <aside className={styles.legend} aria-label="Referencias del mapa">
+        <p className={styles.legendTitle}>Referencias del mapa</p>
         <span className={styles.legendRow}>
           <span className={styles.legendLine} aria-hidden="true" />
           Traza de canal de riego
         </span>
         <span className={styles.legendRow}>
           <span className={classNames(styles.legendDot, styles.legendDotSat)} aria-hidden="true" />
-          🛰️ Fuga satelital (MNDWI)
+          🛰️ Posible filtración en canal
         </span>
         <span className={styles.legendRow}>
           <span
             className={classNames(styles.legendDot, styles.legendDotUrban)}
             aria-hidden="true"
           />
-          🏙️ Acequia urbana obstruida (IA)
+          🏙️ Acequia urbana obstruida
         </span>
       </aside>
     </div>

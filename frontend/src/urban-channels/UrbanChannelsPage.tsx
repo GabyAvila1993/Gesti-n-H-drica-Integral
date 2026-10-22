@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { appConfig, type Municipality } from '../app.config';
+import { appConfig } from '../app.config';
 import { Button } from '../shared/ui/Button/Button';
 import { Card } from '../shared/ui/Card/Card';
 import { EmptyState } from '../shared/ui/EmptyState/EmptyState';
@@ -39,29 +39,11 @@ export function UrbanChannelsPage() {
   } = useImageAnalysis();
 
   const [activeDetectionId, setActiveDetectionId] = useState<string | null>(null);
-  const [presetDefaults, setPresetDefaults] = useState<{
-    municipality: Municipality;
-    address: string;
-  }>({
-    municipality: 'Capital',
-    address: 'Av. Colón y Patricias Mendocinas',
-  });
   const [municipalityFilter, setMunicipalityFilter] = useState<string>('ALL');
 
   const handleSelectFile = (file: File, preset?: SamplePhotoPreset) => {
     setActiveDetectionId(null);
-    if (preset) {
-      setPresetDefaults({
-        municipality: preset.defaultMunicipality,
-        address: preset.defaultAddress,
-      });
-    } else {
-      setPresetDefaults({
-        municipality: 'Capital',
-        address: `Acequia inspeccionada (${file.name.replace(/\.[^.]+$/, '')})`,
-      });
-    }
-    void analyzeFile(file);
+    void analyzeFile(file, preset?.id);
   };
 
   const filteredAlerts = useMemo(
@@ -76,7 +58,7 @@ export function UrbanChannelsPage() {
     <div className={styles.urbanPage}>
       <div className={styles.urbanPageWorkspace}>
         <Card
-          title="Inspección visual de acequia por IA"
+          title="Análisis de acequia por foto"
           actions={
             analysis.kind === 'ready' ? (
               <Button variant="ghost" onClick={reset}>
@@ -89,7 +71,7 @@ export function UrbanChannelsPage() {
 
           {analysis.kind === 'analyzing' && (
             <div className={styles.urbanPageLoading}>
-              <Spinner label={`Analizando residuos en "${analysis.fileName}"…`} />
+              <Spinner label={`Analizando "${analysis.fileName}"…`} />
             </div>
           )}
 
@@ -97,9 +79,9 @@ export function UrbanChannelsPage() {
             <EmptyState
               tone="error"
               icon="⚠️"
-              title="No se pudo analizar la fotografía"
+              title="No se pudo analizar la foto"
               description={analysis.message}
-              action={<Button onClick={reset}>Intentar con otra imagen</Button>}
+              action={<Button onClick={reset}>Probar con otra imagen</Button>}
             />
           )}
 
@@ -114,12 +96,10 @@ export function UrbanChannelsPage() {
           )}
         </Card>
 
-        <Card title="Evaluación hidráulica y alerta">
+        <Card title="Estado de obstrucción y registro">
           {analysis.kind === 'ready' ? (
             <RiskPanel
               result={analysis.result}
-              defaultMunicipality={presetDefaults.municipality}
-              defaultAddress={presetDefaults.address}
               activeDetectionId={activeDetectionId}
               onHoverDetection={setActiveDetectionId}
               registration={registration}
@@ -129,8 +109,8 @@ export function UrbanChannelsPage() {
           ) : (
             <EmptyState
               icon="🔍"
-              title="Subí una foto para calcular la obstrucción"
-              description="El modelo detectará plásticos, ramas y escombros en el cauce, calculará el porcentaje de obstrucción y habilitará el registro de la alerta preventiva."
+              title="Subí una foto para evaluar la acequia"
+              description="Se identificarán botellas, bolsas, ramas y escombros en el cauce para estimar el porcentaje de obstrucción y registrar la alerta."
             />
           )}
         </Card>
@@ -153,7 +133,7 @@ export function UrbanChannelsPage() {
           <EmptyState
             tone="error"
             icon="⚠️"
-            title="No se pudieron cargar las alertas de acequias"
+            title="No se pudieron cargar las alertas"
             description={alertsError}
             action={<Button onClick={reloadAlerts}>Reintentar</Button>}
           />
@@ -177,7 +157,7 @@ export function UrbanChannelsPage() {
 
                 <div className={styles.alertItemMeta}>
                   <span>Obstrucción: {alert.obstructionPercentage}%</span>
-                  <span>Objetos: {alert.detectionsCount}</span>
+                  <span>Materiales: {alert.detectionsCount}</span>
                   <span>{dateFormatter.format(new Date(alert.createdAt))}</span>
                 </div>
 

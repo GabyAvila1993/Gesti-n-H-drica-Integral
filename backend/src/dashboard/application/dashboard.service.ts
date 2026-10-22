@@ -109,16 +109,16 @@ export class DashboardService {
       title: leak.canalName,
       municipality: leak.municipality,
       severity: leak.severity,
-      metricLabel: `MNDWI ${leak.mndwi.toFixed(2)}`,
+      metricLabel: `Humedad ${leak.mndwi.toFixed(2)}`,
       metricValue: leak.mndwi,
       detectedAt: leak.detectedAt,
-      details: `Anomalía de humedad detectada sobre escena ${leak.sceneId}. Posible filtración lateral del revestimiento.`,
+      details: 'Humedad fuera del cauce detectada por satélite. Revisar posibles pérdidas o roturas en los márgenes del canal.',
       location: leak.location,
     };
   }
 
   private mapUrbanToRecord(alert: UrbanAlert): UnifiedIncidentRecord {
-    const objectsDesc = alert.detections.map((d) => `${d.label} (${d.confidence}%)`).join(', ');
+    const materials = Array.from(new Set(alert.detections.map((d) => d.label))).join(', ');
     return {
       id: alert.id,
       source: 'URBAN',
@@ -130,8 +130,8 @@ export class DashboardService {
       metricValue: alert.obstructionPercentage,
       detectedAt: alert.createdAt,
       details: alert.notes
-        ? `${alert.notes} · Objetos detectados (${alert.detectionsCount}): ${objectsDesc}`
-        : `Objetos detectados (${alert.detectionsCount}): ${objectsDesc}`,
+        ? `${alert.notes} Materiales: ${materials}.`
+        : `Acequia con residuos acumulados (${materials}).`,
       location: alert.location,
     };
   }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Municipality } from '../../app.config';
 import { ApiError } from '../../shared/api/http-client';
+import type { SamplePhotoPreset } from '../services/sample-photos';
 import { urbanApi } from '../services/urban.api';
 import type { UrbanAlert, UrbanAnalysisResult } from '../types';
 
@@ -55,7 +56,7 @@ export function useImageAnalysis() {
     };
   }, [previewUrl]);
 
-  const analyzeFile = useCallback(async (file: File) => {
+  const analyzeFile = useCallback(async (file: File, presetId?: SamplePhotoPreset['id']) => {
     const objectUrl = URL.createObjectURL(file);
     setPreviewUrl((prev) => {
       if (prev) URL.revokeObjectURL(prev);
@@ -66,7 +67,7 @@ export function useImageAnalysis() {
     setRegistration({ kind: 'idle' });
 
     try {
-      const result = await urbanApi.analyzeImage(file);
+      const result = await urbanApi.analyzeImage(file, presetId);
       setAnalysis({ kind: 'ready', result });
     } catch (error) {
       setAnalysis({

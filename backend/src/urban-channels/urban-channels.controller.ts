@@ -25,7 +25,10 @@ import { validateUploadedImage } from '../core/security/image-upload.validator';
 import { UrbanAnalysisService } from './application/urban-analysis.service';
 import { CreateUrbanAlertDto } from './dto/create-urban-alert.dto';
 import { UrbanAlertsQueryDto } from './dto/urban-alerts-query.dto';
-import type { VisionImageInput } from './providers/vision-provider.interface';
+import type {
+  PresetScenarioKey,
+  VisionImageInput,
+} from './providers/vision-provider.interface';
 
 @ApiTags('Acequias Urbanas')
 @Controller('urban')
@@ -39,13 +42,13 @@ export class UrbanChannelsController {
   @Post('analyze')
   @UseInterceptors(FileInterceptor('image'))
   @ApiOperation({
-    summary: 'Analizar fotografía de acequia mediante IA',
+    summary: 'Analizar fotografía de acequia',
     description:
-      'Recibe una imagen (`multipart/form-data`, campo `image`), valida su tamaño máximo, extensión, MIME type y firma binaria (magic bytes), y devuelve los objetos detectados con sus bounding boxes porcentuales, porcentaje de obstrucción y nivel de riesgo.',
+      'Recibe una imagen (`multipart/form-data`, campo `image`). Si incluye `presetId` (`critico`, `medio`, `bajo`), utiliza la escena de prueba; si es una foto subida por el usuario, analiza la imagen píxel por píxel o mediante el proveedor configurado.',
   })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
-    description: 'Fotografía de la acequia a inspeccionar (JPEG, PNG, WebP o SVG sin scripts)',
+    description: 'Fotografía de la acequia a relevar (JPEG, PNG, WebP o SVG sin scripts)',
     schema: {
       type: 'object',
       required: ['image'],
@@ -53,14 +56,19 @@ export class UrbanChannelsController {
         image: {
           type: 'string',
           format: 'binary',
-          description: 'Archivo de imagen de la acequia (máx. 8 MB por defecto)',
+          description: 'Archivo de imagen de la acequia (máx. 10 MB)',
+        },
+        presetId: {
+          type: 'string',
+          enum: ['critico', 'medio', 'bajo'],
+          description: 'Opcional. Identificador de escena de prueba para carga inmediata.',
         },
       },
     },
   })
   @ApiCreatedResponse({
     description:
-      'Resultado del análisis con porcentaje de obstrucción, nivel de riesgo (BAJO, MEDIO, CRITICO) y lista de detecciones con bounding boxes.',
+      'Resultado del análisis con porcentaje de obstrucción, nivel de riesgo (BAJO, MEDIO, CRITICO) y lista de materiales detectados.',
   })
   @ApiBadRequestResponse({
     description: 'Archivo ausente, vacío o con extensión comprimida/ejecutable bloqueada.',
@@ -69,25 +77,34 @@ export class UrbanChannelsController {
     description: 'El archivo supera el tamaño máximo permitido (UPLOAD_MAX_SIZE_MB).',
   })
   @ApiUnsupportedMediaTypeResponse({
-    description: 'Tipo MIME no permitido o firma binaria (magic bytes) inválida.',
+    description: 'Formato MIME no permitido o firma binaria (magic bytes) inválida.',
   })
-  analyzeImage(@UploadedFile() file?: VisionImageInput) {
+  analyzeImage(
+    @UploadedFile() file?: VisionImageInput,
+    @Body('presetId') presetId?: PresetScenarioKey,
+  ) {
     validateUploadedImage(file, this.config.uploadMaxSizeMb);
+
+    const validPreset =
+      presetId === 'critico' || presetId === 'medio' || presetId === 'bajo'
+        ? presetId
+        : undefined;
 
     return this.service.analyzeImage({
       buffer: file!.buffer,
       originalname: file!.originalname,
       mimetype: file!.mimetype,
       size: file!.size,
+      presetId: validPreset,
     });
   }
 
-  /** Registra una alerta de obstrucción de acequia a partir de una inspección analizada. */
+  /** Registra una alerta de obstrucción de acequia a partir de un relevamiento fotográfico. */
   @Post('alerts')
   @ApiOperation({
     summary: 'Registrar alerta de acequia obstruida',
     description:
-      'Registra un incidente urbano georreferenciado en el municipio indicado a partir del resultado de una inspección fotográfica.',
+      'Registra un incidente urbano georreferenciado en el municipio indicado a partir del resultado de una foto analizada.',
   })
   @ApiCreatedResponse({
     description: 'Alerta urbana creada y georreferenciada exitosamente.',
@@ -104,7 +121,7 @@ export class UrbanChannelsController {
   @ApiOperation({
     summary: 'Listar alertas de obstrucción en acequias urbanas',
     description:
-      'Devuelve el historial de alertas urbanas registradas con sus coordenadas GeoJSON y detecciones asociadas, filtrables por municipio y nivel de riesgo.',
+      'Devuelve el historial de alertas urbanas registradas con sus coordenadas GeoJSON y materiales detectados, filtrables por municipio y nivel de riesgo.',
   })
   @ApiOkResponse({
     description: 'Listado de alertas urbanas de acequias.',

@@ -10,10 +10,13 @@ import type { AlertRegistrationStatus } from '../hooks/useImageAnalysis';
 import { CATEGORY_LABEL, type UrbanAnalysisResult } from '../types';
 import styles from './RiskPanel.module.css';
 
-const MUNICIPALITY_OPTIONS: readonly SelectOption[] = appConfig.municipalities.map((m) => ({
-  value: m,
-  label: m,
-}));
+const MUNICIPALITY_OPTIONS: readonly SelectOption[] = [
+  { value: '', label: 'Seleccione un municipio...' },
+  ...appConfig.municipalities.map((m) => ({
+    value: m,
+    label: m,
+  })),
+];
 
 const BAR_CLASS: Record<Severity, string> = {
   BAJO: styles.riskMeterBarLow,
@@ -23,8 +26,6 @@ const BAR_CLASS: Record<Severity, string> = {
 
 interface RiskPanelProps {
   result: UrbanAnalysisResult;
-  defaultMunicipality?: Municipality;
-  defaultAddress?: string;
   activeDetectionId: string | null;
   onHoverDetection: (id: string | null) => void;
   registration: AlertRegistrationStatus;
@@ -34,34 +35,51 @@ interface RiskPanelProps {
 
 export function RiskPanel({
   result,
-  defaultMunicipality = 'Capital',
-  defaultAddress = '',
   activeDetectionId,
   onHoverDetection,
   registration,
   onRegisterAlert,
   onNewAnalysis,
 }: RiskPanelProps) {
-  const [municipality, setMunicipality] = useState<Municipality>(defaultMunicipality);
-  const [address, setAddress] = useState<string>(defaultAddress);
+  const [municipality, setMunicipality] = useState<Municipality | ''>('');
+  const [address, setAddress] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   useEffect(() => {
-    setMunicipality(defaultMunicipality);
-    setAddress(defaultAddress || 'Av. San Martín y Las Heras');
+    setMunicipality('');
+    setAddress('');
     setNotes('');
-  }, [result.analysisId, defaultMunicipality, defaultAddress]);
+    setValidationError(null);
+  }, [result.analysisId]);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!address.trim()) return;
-    onRegisterAlert({ municipality, address, notes });
-  };
+  const trimmedAddress = address.trim();
+  const isMunicipalityValid = municipality !== '';
+  const isAddressValid = trimmedAddress.length >= 4;
 
   const canRegister =
     registration.kind !== 'saving' &&
     registration.kind !== 'saved' &&
-    address.trim().length >= 4;
+    isMunicipalityValid &&
+    isAddressValid;
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!isMunicipalityValid || !isAddressValid) {
+      setValidationError(
+        'Seleccioná un municipio e ingresá la dirección o intersección real de la acequia.',
+      );
+      return;
+    }
+
+    setValidationError(null);
+    onRegisterAlert({
+      municipality: municipality as Municipality,
+      address: trimmedAddress,
+      notes,
+    });
+  };
 
   return (
     <div className={styles.riskPanel}>
@@ -105,7 +123,7 @@ export function RiskPanel({
         </div>
       </div>
 
-      <ul className={styles.detectionsList} aria-label="Objetos detectados en la imagen">
+      <ul className={styles.detectionsList} aria-label="Materiales detectados en la imagen">
         {result.detections.map((det) => (
           <li
             key={det.id}
@@ -125,23 +143,32 @@ export function RiskPanel({
         ))}
       </ul>
 
-      <form className={styles.alertForm} onSubmit={handleSubmit}>
+      <form className={styles.alertForm} onSubmit={handleSubmit} noValidate>
         <p className={styles.alertFormTitle}>Registrar alerta de acequia</p>
 
         <Select
-          label="Municipio"
+          label="Municipio *"
           options={MUNICIPALITY_OPTIONS}
           value={municipality}
-          onChange={(e) => setMunicipality(e.target.value as Municipality)}
+          required
+          aria-required="true"
+          onChange={(e) => {
+            setMunicipality(e.target.value as Municipality | '');
+            if (validationError) setValidationError(null);
+          }}
           disabled={registration.kind === 'saving' || registration.kind === 'saved'}
         />
 
         <Input
-          label="Dirección o intersección de la acequia"
+          label="Dirección o intersección de la acequia *"
           placeholder="Ej: Av. Emilio Civit y Belgrano"
           value={address}
-          onChange={(e) => setAddress(e.target.value)}
+          onChange={(e) => {
+            setAddress(e.target.value);
+            if (validationError) setValidationError(null);
+          }}
           required
+          aria-required="true"
           minLength={4}
           disabled={registration.kind === 'saving' || registration.kind === 'saved'}
         />
@@ -153,6 +180,21 @@ export function RiskPanel({
           onChange={(e) => setNotes(e.target.value)}
           disabled={registration.kind === 'saving' || registration.kind === 'saved'}
         />
+
+        {validationError && (
+          <p
+            className={classNames(styles.alertFormFeedback, styles.alertFormFeedbackError)}
+            role="alert"
+          >
+            {validationError}
+          </p>
+        )}
+
+        {!validationError && (!isMunicipalityValid || !isAddressValid) && registration.kind === 'idle' && (
+          <p className={styles.riskMeterScale} role="note">
+            Completá el municipio y la dirección exacta para habilitar el envío a cuadrilla.
+          </p>
+        )}
 
         {registration.kind === 'saved' && (
           <p
