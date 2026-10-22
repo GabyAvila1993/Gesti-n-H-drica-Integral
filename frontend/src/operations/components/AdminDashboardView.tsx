@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { ApiError } from '../../shared/api/http-client';
+import { ApiError, resolveBackendAssetUrl } from '../../shared/api/http-client';
 import { Button } from '../../shared/ui/Button/Button';
 import { Card } from '../../shared/ui/Card/Card';
 import { EmptyState } from '../../shared/ui/EmptyState/EmptyState';
@@ -324,7 +324,7 @@ export function AdminDashboardView({ token, currentUser }: AdminDashboardViewPro
                         {beforeUrl && afterUrl ? (
                           <div className={styles.evidenceLinksCell}>
                             <a
-                              href={beforeUrl}
+                              href={resolveBackendAssetUrl(beforeUrl)}
                               target="_blank"
                               rel="noreferrer"
                               className={styles.evidenceLink}
@@ -332,7 +332,7 @@ export function AdminDashboardView({ token, currentUser }: AdminDashboardViewPro
                               📷 Foto Antes
                             </a>
                             <a
-                              href={afterUrl}
+                              href={resolveBackendAssetUrl(afterUrl)}
                               target="_blank"
                               rel="noreferrer"
                               className={styles.evidenceLink}

@@ -2,6 +2,25 @@ import { appConfig } from '../../app.config';
 
 const DEFAULT_TIMEOUT_MS = 15_000;
 
+/**
+ * URL base de la API resuelta dinámicamente desde `import.meta.env.VITE_API_URL`
+ * (ej. `https://gesti-n-h-drica-integral.onrender.com` en producción o `http://localhost:3000` en local).
+ */
+export const API_BASE_URL = appConfig.api.baseUrl;
+
+/**
+ * Convierte una ruta relativa servida por el backend (ej. `/uploads/crew-evidence/...`)
+ * en una URL absoluta hacia el servidor configurado en `VITE_API_URL`.
+ */
+export function resolveBackendAssetUrl(assetPath: string): string {
+  if (!assetPath) return '';
+  if (assetPath.startsWith('http://') || assetPath.startsWith('https://')) {
+    return assetPath;
+  }
+  const normalizedPath = assetPath.startsWith('/') ? assetPath : `/${assetPath}`;
+  return `${appConfig.api.origin}${normalizedPath}`;
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -84,8 +103,10 @@ async function executeFetch<T>(
   const { signal, cleanup, didTimeout } = createTimedSignal(externalSignal);
   let response: Response;
 
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+
   try {
-    response = await fetch(`${appConfig.api.baseUrl}${path}`, {
+    response = await fetch(`${API_BASE_URL}${normalizedPath}`, {
       ...init,
       signal,
     });
