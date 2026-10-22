@@ -77,16 +77,31 @@
 }
 
 .legend__line {
-  width: 18px;
+  width: 20px;
   height: 4px;
   border-radius: var(--radius-pill);
-  background-color: var(--risk-normal);
+  background-color: #0ea5e9;
+  flex-shrink: 0;
+}
+
+.legend__line--critical {
+  height: 5px;
+  background-color: #ef4444;
+}
+
+.legend__line--warning {
+  background-color: #f59e0b;
+}
+
+.legend__line--normal {
+  background-color: #0ea5e9;
 }
 
 .legend__dot {
   width: 12px;
   height: 12px;
   border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .legend__dot--sat {

@@ -62,18 +62,36 @@ export class SatelliteMonitoringService {
   private toCanal(source: CanalSource, alerts: LeakAlert[]): Canal {
     const canalAlerts = alerts.filter((a) => a.canalId === source.id);
     const municipalities = [...new Set(source.vertices.map((v) => v.municipality))] as Municipality[];
+    const alertStatus = maxSeverity(canalAlerts.map((a) => a.severity));
+    const configuredRisk = source.properties?.riskLevel ?? source.riskLevel;
+    const status = alertStatus ?? configuredRisk ?? 'NORMAL';
+    const code = source.properties?.code ?? source.code ?? source.id.toUpperCase();
+    const heightCm = source.properties?.heightCm ?? source.heightCm ?? 85;
+    const flowLs =
+      source.properties?.flowLs ?? source.flowLs ?? Math.round(source.nominalFlowM3s * 20);
+
+    const properties = {
+      name: source.name,
+      code,
+      riskLevel: status,
+      heightCm,
+      flowLs,
+    };
 
     return {
       id: source.id,
       name: source.name,
+      code,
       description: source.description,
       nominalFlowM3s: source.nominalFlowM3s,
       municipalities,
-      status: maxSeverity(canalAlerts.map((a) => a.severity)) ?? 'NORMAL',
+      status,
       activeAlerts: canalAlerts.length,
+      properties,
       geometry: {
         type: 'LineString',
         coordinates: source.vertices.map(toGeoJsonPosition),
+        properties,
       },
     };
   }

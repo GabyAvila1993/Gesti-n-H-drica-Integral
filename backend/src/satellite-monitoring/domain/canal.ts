@@ -15,25 +15,43 @@ export interface CanalVertex extends LatLng {
   municipality: Municipality;
 }
 
+export type CanalStatus = 'NORMAL' | Severity;
+
+/** Propiedades de telemetría hidrométrica según estándar del Departamento General de Irrigación (DGI). */
+export interface CanalTelemetryProperties {
+  name: string;
+  code: string;
+  riskLevel: CanalStatus;
+  heightCm: number;
+  flowLs: number;
+}
+
 /** Definición cruda del canal tal como la entrega un proveedor satelital/catastral. */
 export interface CanalSource {
   id: string;
   name: string;
+  code?: string;
   description: string;
   nominalFlowM3s: number;
+  riskLevel?: CanalStatus;
+  heightCm?: number;
+  flowLs?: number;
+  properties?: Partial<CanalTelemetryProperties>;
   vertices: CanalVertex[];
 }
 
-export type CanalStatus = 'NORMAL' | Severity;
-
-/** Canal enriquecido que expone la API. */
+/** Canal enriquecido que expone la API con propiedades GeoJSON de telemetría DGI. */
 export interface Canal {
   id: string;
   name: string;
+  code: string;
   description: string;
   nominalFlowM3s: number;
   municipalities: Municipality[];
   status: CanalStatus;
   activeAlerts: number;
-  geometry: GeoJsonLineString;
+  properties: CanalTelemetryProperties;
+  geometry: GeoJsonLineString & {
+    properties: CanalTelemetryProperties;
+  };
 }

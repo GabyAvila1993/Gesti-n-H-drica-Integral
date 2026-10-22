@@ -70,7 +70,8 @@ export function UnifiedMap({
               eventHandlers={{ click: () => handleSelectById(recId) }}
             >
               <Tooltip direction="top" offset={[0, -8]} className={styles.pinTooltip}>
-                🛰️ Posible filtración · {leak.canalName} ({leak.municipality})
+                📡 Sensor de Telemetría (DGI) · Alerta de desborde/filtración — {leak.canalName} (
+                {leak.municipality})
               </Tooltip>
             </CircleMarker>
           );
@@ -93,7 +94,7 @@ export function UnifiedMap({
               eventHandlers={{ click: () => handleSelectById(urban.id) }}
             >
               <Tooltip direction="top" offset={[0, -8]} className={styles.pinTooltip}>
-                🏙️ Acequia · {urban.address} ({urban.municipality}) · Obstrucción{' '}
+                🚧 Obstrucción en vía pública · {urban.address} ({urban.municipality}) ·{' '}
                 {urban.obstructionPercentage}%
               </Tooltip>
             </CircleMarker>
@@ -104,21 +105,38 @@ export function UnifiedMap({
       </BaseMap>
 
       <aside className={styles.legend} aria-label="Referencias del mapa">
-        <p className={styles.legendTitle}>Referencias del mapa</p>
+        <p className={styles.legendTitle}>Referencias GIS · Red DGI</p>
         <span className={styles.legendRow}>
-          <span className={styles.legendLine} aria-hidden="true" />
-          Traza de canal de riego
+          <span
+            className={classNames(styles.legendLine, styles.legendLineCritical)}
+            aria-hidden="true"
+          />
+          Traza hídrica principal (Riesgo crítico)
+        </span>
+        <span className={styles.legendRow}>
+          <span
+            className={classNames(styles.legendLine, styles.legendLineWarning)}
+            aria-hidden="true"
+          />
+          Cauce en advertencia / Vigilancia DGI
+        </span>
+        <span className={styles.legendRow}>
+          <span
+            className={classNames(styles.legendLine, styles.legendLineNormal)}
+            aria-hidden="true"
+          />
+          Red de riego DGI (Flujo nominal)
         </span>
         <span className={styles.legendRow}>
           <span className={classNames(styles.legendDot, styles.legendDotSat)} aria-hidden="true" />
-          🛰️ Posible filtración en canal
+          Sensor de Telemetría (DGI) · Alerta de desborde/filtración
         </span>
         <span className={styles.legendRow}>
           <span
             className={classNames(styles.legendDot, styles.legendDotUrban)}
             aria-hidden="true"
           />
-          🏙️ Acequia urbana obstruida
+          Obstrucción en vía pública
         </span>
       </aside>
     </div>

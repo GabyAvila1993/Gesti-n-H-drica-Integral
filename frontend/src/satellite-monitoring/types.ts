@@ -4,15 +4,29 @@ import type { RiskLevel, Severity } from '../shared/domain/risk-level';
 /** GeoJSON usa el orden [longitud, latitud]. */
 export type GeoJsonPosition = [number, number];
 
+export interface CanalTelemetryProperties {
+  name: string;
+  code: string;
+  riskLevel: RiskLevel;
+  heightCm: number;
+  flowLs: number;
+}
+
 export interface Canal {
   id: string;
   name: string;
+  code?: string;
   description: string;
   nominalFlowM3s: number;
   municipalities: Municipality[];
   status: RiskLevel;
   activeAlerts: number;
-  geometry: { type: 'LineString'; coordinates: GeoJsonPosition[] };
+  properties?: CanalTelemetryProperties;
+  geometry: {
+    type: 'LineString';
+    coordinates: GeoJsonPosition[];
+    properties?: CanalTelemetryProperties;
+  };
 }
 
 export interface LeakAlert {
