@@ -8,9 +8,9 @@ import react from '@vitejs/plugin-react';
 function vitePwaPlugin(): Plugin {
   return {
     name: 'ghi-pwa-plugin',
-    configureServer(server) {
-      server.middlewares.use((req, res, next) => {
-        if (req.url === '/sw.js') {
+    configureServer(server: any) {
+      server.middlewares.use((req: any, res: any, next: () => void) => {
+        if ((req as any).url === '/sw.js') {
           res.setHeader('Service-Worker-Allowed', '/');
           res.setHeader('Cache-Control', 'no-cache');
         }

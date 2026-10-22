@@ -1,5 +1,6 @@
-# Documento de planificación interno (nunca se sube al repositorio)
+# Documentos internos y manual técnico privado (nunca se suben al repositorio)
 PLAN_IMPLEMENTACION_v2.md
+MANUAL_ARQUITECTURA.md
 
 # Dependencias
 node_modules/
