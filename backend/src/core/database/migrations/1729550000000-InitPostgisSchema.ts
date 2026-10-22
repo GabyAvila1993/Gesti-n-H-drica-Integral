@@ -47,6 +47,12 @@ export class InitPostgisSchema1729550000000 implements MigrationInterface {
     `);
 
     await queryRunner.query(`
+      ALTER TABLE "users"
+        ADD COLUMN IF NOT EXISTS "full_name" varchar(140),
+        ADD COLUMN IF NOT EXISTS "created_at" TIMESTAMPTZ NOT NULL DEFAULT now();
+    `);
+
+    await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS "urban_alerts" (
         "id" uuid NOT NULL DEFAULT gen_random_uuid(),
         "analysis_id" varchar(80),
@@ -65,6 +71,21 @@ export class InitPostgisSchema1729550000000 implements MigrationInterface {
         "evidence_after_url" varchar(500),
         CONSTRAINT "PK_urban_alerts_id" PRIMARY KEY ("id")
       );
+    `);
+
+    // Asegurar que tablas preexistentes en Neon.tech reciban todas las columnas nuevas (Auditoría Fotográfica y metadatos)
+    await queryRunner.query(`
+      ALTER TABLE "urban_alerts"
+        ADD COLUMN IF NOT EXISTS "analysis_id" varchar(80),
+        ADD COLUMN IF NOT EXISTS "image_url" varchar(500),
+        ADD COLUMN IF NOT EXISTS "obstruction_percentage" integer NOT NULL DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS "detections" jsonb NOT NULL DEFAULT '[]'::jsonb,
+        ADD COLUMN IF NOT EXISTS "notes" text,
+        ADD COLUMN IF NOT EXISTS "status" "urban_alert_status_enum" NOT NULL DEFAULT 'PENDING',
+        ADD COLUMN IF NOT EXISTS "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
+        ADD COLUMN IF NOT EXISTS "resolved_at" TIMESTAMPTZ,
+        ADD COLUMN IF NOT EXISTS "evidence_before_url" varchar(500),
+        ADD COLUMN IF NOT EXISTS "evidence_after_url" varchar(500);
     `);
 
     await queryRunner.query(`
@@ -91,6 +112,14 @@ export class InitPostgisSchema1729550000000 implements MigrationInterface {
         CONSTRAINT "FK_task_assignments_assigned_by" FOREIGN KEY ("assigned_by_id") REFERENCES "users"("id") ON DELETE RESTRICT,
         CONSTRAINT "FK_task_assignments_crew_user" FOREIGN KEY ("crew_user_id") REFERENCES "users"("id") ON DELETE RESTRICT
       );
+    `);
+
+    await queryRunner.query(`
+      ALTER TABLE "task_assignments"
+        ADD COLUMN IF NOT EXISTS "resolved_at" TIMESTAMPTZ,
+        ADD COLUMN IF NOT EXISTS "resolution_notes" text,
+        ADD COLUMN IF NOT EXISTS "evidence_before_url" varchar(500),
+        ADD COLUMN IF NOT EXISTS "evidence_after_url" varchar(500);
     `);
   }
 

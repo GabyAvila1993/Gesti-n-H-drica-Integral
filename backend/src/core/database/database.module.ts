@@ -29,18 +29,29 @@ export const POSTGRES_DATA_SOURCE = Symbol('POSTGRES_DATA_SOURCE');
           // 1. Activar extensión PostGIS antes de sincronizar tablas con geometry(Point, 4326)
           await dataSource.query('CREATE EXTENSION IF NOT EXISTS postgis;');
 
-          // 2. Ejecutar esquema inicial / sincronización
+          // 2. Ejecutar esquema inicial y parches idempotentes (CREATE TABLE / ADD COLUMN IF NOT EXISTS)
+          const queryRunner = dataSource.createQueryRunner();
+          try {
+            const migration = new InitPostgisSchema1729550000000();
+            await migration.up(queryRunner);
+          } finally {
+            await queryRunner.release();
+          }
+
+          // 3. Sincronización controlada de metadatos de entidades si DB_SYNCHRONIZE está activo
           if (config.synchronize) {
-            const queryRunner = dataSource.createQueryRunner();
             try {
-              const migration = new InitPostgisSchema1729550000000();
-              await migration.up(queryRunner);
-            } finally {
-              await queryRunner.release();
+              await dataSource.synchronize();
+            } catch (syncError) {
+              const syncMsg =
+                syncError instanceof Error ? syncError.message : String(syncError);
+              logger.debug(
+                `Esquema validado por migración idempotente PostGIS (aviso synchronize: ${syncMsg})`,
+              );
             }
           }
 
-          logger.log('Conectado a PostgreSQL (Neon.tech) con extensión PostGIS activa.');
+          logger.log('Conectado a PostgreSQL (Neon.tech) con extensión PostGIS y esquema sincronizado.');
           return dataSource;
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);

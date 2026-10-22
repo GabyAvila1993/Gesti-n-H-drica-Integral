@@ -35,6 +35,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
       this.logger.error(exception instanceof Error ? exception.stack : exception);
     }
 
+    if (!response.getHeader('Access-Control-Allow-Origin')) {
+      response.setHeader(
+        'Access-Control-Allow-Origin',
+        request.headers.origin || process.env.CORS_ORIGIN || '*',
+      );
+    }
+
     response.status(status).json({
       statusCode: status,
       message,

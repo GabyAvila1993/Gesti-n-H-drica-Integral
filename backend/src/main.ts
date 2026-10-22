@@ -28,8 +28,38 @@ async function bootstrap() {
 
   app.setGlobalPrefix(config.globalPrefix);
 
-  // Configuración flexible de CORS para desarrollo local y despliegue cloud (Render)
-  app.enableCors({ origin: process.env.CORS_ORIGIN || '*' });
+  // Configuración flexible y normalizada de CORS para desarrollo local y despliegue cloud (Render)
+  const rawCorsOrigin = (process.env.CORS_ORIGIN || '*').trim();
+  const allowedOrigins = rawCorsOrigin
+    .split(',')
+    .map((origin) => origin.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
+
+  app.enableCors({
+    origin: (
+      requestOrigin: string | undefined,
+      callback: (err: Error | null, allow?: boolean | string) => void,
+    ) => {
+      if (!requestOrigin || rawCorsOrigin === '*' || allowedOrigins.includes('*')) {
+        callback(null, '*');
+        return;
+      }
+      const normalizedRequestOrigin = requestOrigin.trim().replace(/\/+$/, '');
+      if (
+        allowedOrigins.includes(normalizedRequestOrigin) ||
+        normalizedRequestOrigin.endsWith('.onrender.com') ||
+        normalizedRequestOrigin.startsWith('http://localhost:') ||
+        normalizedRequestOrigin.startsWith('http://127.0.0.1:')
+      ) {
+        callback(null, requestOrigin);
+        return;
+      }
+      callback(null, '*');
+    },
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
+    optionsSuccessStatus: 204,
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }),
