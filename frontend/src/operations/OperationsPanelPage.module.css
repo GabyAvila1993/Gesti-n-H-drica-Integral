@@ -614,3 +614,50 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.taskHistoryCard {
+  grid-column: 1 / -1;
+}
+
+.taskHistoryList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.taskHistoryItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-muted);
+}
+
+.taskHistoryCheck {
+  flex: 0 0 auto;
+  color: #15803d;
+}
+
+.taskHistoryAddress {
+  flex: 1;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.taskHistoryTime {
+  flex: 0 0 auto;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.taskHistoryEmpty {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+}

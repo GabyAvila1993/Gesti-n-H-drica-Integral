@@ -1,4 +1,5 @@
 import type { DetectedObject } from '../domain/detection';
+import type { FullVisionAnalysis } from './pixel-vision.analyzer';
 
 export const VISION_PROVIDER = Symbol('VISION_PROVIDER');
 
@@ -18,4 +19,5 @@ export interface VisionImageInput {
 export interface VisionProvider {
   readonly name: string;
   analyzeImage(image: VisionImageInput): Promise<DetectedObject[]>;
+  analyzeImageFull?(image: VisionImageInput): Promise<FullVisionAnalysis | null>;
 }

@@ -169,10 +169,22 @@ export class OperationsController {
     return this.service.getCrewTacticalOverview(crew);
   }
 
-  @Patch('crew/tasks/:alertId/resolve')
-  @Post('crew/tasks/:alertId/resolve')
+  @Get('crew/tasks/history')
   @UseGuards(JwtAuthGuard)
-  @Roles(UserRole.CUADRILLA)
+  @Roles(UserRole.CUADRILLA, UserRole.ENCARGADO, UserRole.ADMIN)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Historial de Tareas Completadas en las últimas 24 horas (CUADRILLA / ENCARGADO)',
+    description:
+      'Devuelve las tareas con estado RESOLVED filtradas por el ID de la cuadrilla o del encargado autenticado, limitadas a las últimas 24 horas.',
+  })
+  getCrewTasksHistory(@CurrentUser() user: AuthTokenPayload) {
+    return this.service.getCrewTasksHistory(user);
+  }
+
+  @Post('crew/tasks/:id/resolve')
+  @UseGuards(JwtAuthGuard)
+  @Roles(UserRole.CUADRILLA, UserRole.ENCARGADO, UserRole.ADMIN)
   @UseInterceptors(
     FileFieldsInterceptor([
       { name: 'evidenceBefore', maxCount: 1 },
@@ -182,24 +194,23 @@ export class OperationsController {
   @ApiBearerAuth()
   @ApiConsumes('multipart/form-data')
   @ApiOperation({
-    summary: 'Acequia Limpia / Cerrar Tarea con Auditoría Fotográfica Obligatoria (Rol CUADRILLA)',
+    summary: 'Acequia Limpia / Cerrar Tarea (POST) con Auditoría Fotográfica',
     description:
-      'Recibe obligatoriamente 2 fotografías (`evidenceBefore` y `evidenceAfter`), las almacena mediante `StorageService` en `/uploads/crew-evidence/` y marca la alerta como `RESOLVED` (`resolved_at = now()`).',
+      'Recibe las fotografías o URLs de evidencia (`evidenceBefore` y `evidenceAfter`), actualiza `TaskAssignmentEntity` y `UrbanAlertEntity` a estado `RESOLVED` (`resolved_at = now()`) y guarda las observaciones.',
   })
   @ApiBody({
     schema: {
       type: 'object',
-      required: ['evidenceBefore', 'evidenceAfter'],
       properties: {
         evidenceBefore: {
           type: 'string',
           format: 'binary',
-          description: 'Fotografía obligatoria del estado "Antes" de la limpieza',
+          description: 'Fotografía del estado "Antes" de la limpieza',
         },
         evidenceAfter: {
           type: 'string',
           format: 'binary',
-          description: 'Fotografía obligatoria del estado "Después" de la limpieza',
+          description: 'Fotografía del estado "Después" de la limpieza',
         },
         resolutionNotes: {
           type: 'string',
@@ -208,11 +219,50 @@ export class OperationsController {
       },
     },
   })
-  resolveCrewTask(
+  resolveCrewTaskPost(
     @CurrentUser() crew: AuthTokenPayload,
-    @Param('alertId') alertId: string,
+    @Param('id') id: string,
     @Body() dto: ResolveTaskDto,
     @UploadedFiles()
+    files?: {
+      evidenceBefore?: VisionImageInput[];
+      evidenceAfter?: VisionImageInput[];
+    },
+  ) {
+    return this.handleResolveCrewTask(crew, id, dto, files);
+  }
+
+  @Patch('crew/tasks/:id/resolve')
+  @UseGuards(JwtAuthGuard)
+  @Roles(UserRole.CUADRILLA, UserRole.ENCARGADO, UserRole.ADMIN)
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'evidenceBefore', maxCount: 1 },
+      { name: 'evidenceAfter', maxCount: 1 },
+    ]),
+  )
+  @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({
+    summary: 'Acequia Limpia / Cerrar Tarea (PATCH) con Auditoría Fotográfica',
+  })
+  resolveCrewTaskPatch(
+    @CurrentUser() crew: AuthTokenPayload,
+    @Param('id') id: string,
+    @Body() dto: ResolveTaskDto,
+    @UploadedFiles()
+    files?: {
+      evidenceBefore?: VisionImageInput[];
+      evidenceAfter?: VisionImageInput[];
+    },
+  ) {
+    return this.handleResolveCrewTask(crew, id, dto, files);
+  }
+
+  private handleResolveCrewTask(
+    crew: AuthTokenPayload,
+    id: string,
+    dto: ResolveTaskDto,
     files?: {
       evidenceBefore?: VisionImageInput[];
       evidenceAfter?: VisionImageInput[];
@@ -221,16 +271,23 @@ export class OperationsController {
     const beforeFile = files?.evidenceBefore?.[0];
     const afterFile = files?.evidenceAfter?.[0];
 
-    if (!beforeFile || !afterFile) {
+    if (beforeFile) {
+      validateUploadedImage(beforeFile, this.config.uploadMaxSizeMb);
+    }
+    if (afterFile) {
+      validateUploadedImage(afterFile, this.config.uploadMaxSizeMb);
+    }
+
+    if (
+      (!beforeFile && !dto.evidenceBeforeUrl) ||
+      (!afterFile && !dto.evidenceAfterUrl)
+    ) {
       throw new BadRequestException(
         'Para cerrar la tarea es obligatorio adjuntar las 2 fotografías de auditoría: "Antes" y "Después" de limpiar la acequia.',
       );
     }
 
-    validateUploadedImage(beforeFile, this.config.uploadMaxSizeMb);
-    validateUploadedImage(afterFile, this.config.uploadMaxSizeMb);
-
-    return this.service.resolveCrewTask(crew, alertId, dto, {
+    return this.service.resolveCrewTask(crew, id, dto, {
       evidenceBefore: beforeFile,
       evidenceAfter: afterFile,
     });

@@ -1,6 +1,6 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import type { DataSource } from 'typeorm';
+import type { DataSource, EntityManager } from 'typeorm';
 import { POSTGRES_DATA_SOURCE } from '../../core/database/database.module';
 import {
   UrbanAlertEntity,
@@ -138,14 +138,43 @@ export class UrbanAnalysisService {
       throw new BadRequestException('Debés adjuntar una fotografía válida de la acequia.');
     }
 
+    const storedFilePromise = this.storageService.saveImage({
+      buffer: image.buffer,
+      originalname: image.originalname,
+      mimetype: image.mimetype,
+      folder: 'urban-alerts',
+    });
+
+    if (this.provider.analyzeImageFull) {
+      const [fullResult, storedFile] = await Promise.all([
+        this.provider.analyzeImageFull(image),
+        storedFilePromise,
+      ]);
+
+      if (fullResult) {
+        const baseCalc = calculateObstruction(fullResult.detections);
+        return {
+          analysisId: randomUUID(),
+          fileName: image.originalname,
+          fileSize: image.size,
+          mimeType: image.mimetype,
+          provider: fullResult.providerName,
+          analyzedAt: new Date().toISOString(),
+          imageUrl: storedFile.url,
+          obstructionPercentage: fullResult.obstructionPercentage,
+          riskLevel: fullResult.riskLevel,
+          detections: fullResult.detections,
+          summary: {
+            ...baseCalc.summary,
+            recommendation: fullResult.notes || baseCalc.summary.recommendation,
+          },
+        };
+      }
+    }
+
     const [detections, storedFile] = await Promise.all([
       this.provider.analyzeImage(image),
-      this.storageService.saveImage({
-        buffer: image.buffer,
-        originalname: image.originalname,
-        mimetype: image.mimetype,
-        folder: 'urban-alerts',
-      }),
+      storedFilePromise,
     ]);
 
     const assessment = calculateObstruction(detections);
@@ -262,7 +291,9 @@ export class UrbanAnalysisService {
       resolutionNotes?: string;
       evidenceBeforeUrl: string;
       evidenceAfterUrl: string;
+      resolvedAt?: string;
     },
+    entityManager?: EntityManager,
   ): Promise<UrbanAlert> {
     const { alerts } = await this.ensureInitialized();
     const target = alerts.find((a) => a.id === alertId);
@@ -270,28 +301,41 @@ export class UrbanAnalysisService {
       throw new NotFoundException(`No se encontró la alerta urbana con ID ${alertId}.`);
     }
 
-    const resolvedAtIso = new Date().toISOString();
-    target.status = 'RESOLVED';
-    target.resolvedAt = resolvedAtIso;
-    target.evidenceBeforeUrl = payload.evidenceBeforeUrl;
-    target.evidenceAfterUrl = payload.evidenceAfterUrl;
-    if (payload.resolutionNotes && payload.resolutionNotes.trim().length > 0) {
-      target.notes = payload.resolutionNotes.trim();
-    }
+    const resolvedAtIso = payload.resolvedAt ?? new Date().toISOString();
+    const resolutionNotes =
+      payload.resolutionNotes && payload.resolutionNotes.trim().length > 0
+        ? payload.resolutionNotes.trim()
+        : target.notes ?? null;
 
-    if (this.dataSource && this.dataSource.isInitialized) {
-      const repo = this.dataSource.getRepository(UrbanAlertEntity);
-      await repo.update(
+    if (entityManager) {
+      await entityManager.getRepository(UrbanAlertEntity).update(
         { id: alertId },
         {
           status: UrbanAlertStatus.RESOLVED,
           resolved_at: new Date(resolvedAtIso),
-          notes: target.notes ?? null,
+          notes: resolutionNotes,
+          evidence_before_url: payload.evidenceBeforeUrl,
+          evidence_after_url: payload.evidenceAfterUrl,
+        },
+      );
+    } else if (this.dataSource && this.dataSource.isInitialized) {
+      await this.dataSource.getRepository(UrbanAlertEntity).update(
+        { id: alertId },
+        {
+          status: UrbanAlertStatus.RESOLVED,
+          resolved_at: new Date(resolvedAtIso),
+          notes: resolutionNotes,
           evidence_before_url: payload.evidenceBeforeUrl,
           evidence_after_url: payload.evidenceAfterUrl,
         },
       );
     }
+
+    target.status = 'RESOLVED';
+    target.resolvedAt = resolvedAtIso;
+    target.evidenceBeforeUrl = payload.evidenceBeforeUrl;
+    target.evidenceAfterUrl = payload.evidenceAfterUrl;
+    target.notes = resolutionNotes ?? undefined;
 
     return target;
   }

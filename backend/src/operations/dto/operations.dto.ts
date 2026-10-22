@@ -98,6 +98,22 @@ export class ResolveTaskDto {
   @IsString()
   @MaxLength(280)
   resolutionNotes?: string;
+
+  @ApiPropertyOptional({
+    description: 'URL opcional de evidencia fotográfica Antes (si no se envía archivo binario)',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  evidenceBeforeUrl?: string;
+
+  @ApiPropertyOptional({
+    description: 'URL opcional de evidencia fotográfica Después (si no se envía archivo binario)',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  evidenceAfterUrl?: string;
 }
 
 export class ManagerAlertsQueryDto {

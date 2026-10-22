@@ -11,7 +11,7 @@ import {
 } from 'class-validator';
 
 export const SATELLITE_PROVIDERS = ['mock', 'copernicus'] as const;
-export const VISION_PROVIDERS = ['mock', 'huggingface', 'roboflow'] as const;
+export const VISION_PROVIDERS = ['mock', 'gemini', 'huggingface', 'roboflow'] as const;
 export const STORAGE_PROVIDERS = ['local', 's3', 'cloudinary'] as const;
 
 class EnvironmentVariables {
@@ -52,6 +52,10 @@ class EnvironmentVariables {
   @IsOptional()
   @IsIn(VISION_PROVIDERS)
   AI_VISION_PROVIDER?: string = 'mock';
+
+  @IsOptional()
+  @IsString()
+  GEMINI_API_KEY?: string;
 
   @IsOptional()
   @IsNumber()

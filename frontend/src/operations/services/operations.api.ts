@@ -1,6 +1,7 @@
 import { httpGet, httpPost, httpPostMultipart } from '../../shared/api/http-client';
 import type {
   CrewTacticalOverview,
+  DailyResolvedTaskHistoryItem,
   LoginResponse,
   ManagerStrategicOverview,
   MunicipalOperationsStats,
@@ -83,6 +84,17 @@ export const operationsApi = {
     return httpGet<CrewTacticalOverview>('/operations/crew/tasks', signal, token);
   },
 
+  getTasksHistory(
+    token: string,
+    signal?: AbortSignal,
+  ): Promise<DailyResolvedTaskHistoryItem[]> {
+    return httpGet<DailyResolvedTaskHistoryItem[]>(
+      '/operations/crew/tasks/history',
+      signal,
+      token,
+    );
+  },
+
   resolveCrewTask(
     token: string,
     input: ResolveCrewTaskInput,
@@ -109,3 +121,4 @@ export const operationsApi = {
     );
   },
 };
+

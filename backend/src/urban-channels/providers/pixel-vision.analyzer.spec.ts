@@ -3,7 +3,7 @@ import { describe, it } from 'node:test';
 import { PNG } from 'pngjs';
 import { HuggingFaceVisionProvider } from './huggingface-vision.provider';
 import { MockVisionProvider } from './mock-vision.provider';
-import { analyzeImagePixels } from './pixel-vision.analyzer';
+import { analyzeImagePixels, analyzeImageWithGemini } from './pixel-vision.analyzer';
 
 /**
  * Crea un PNG sintético de una acequia con:
@@ -141,6 +141,21 @@ describe('Ruteo inteligente y análisis píxel por píxel', () => {
     });
     assert.ok(customDetections.length >= 1);
     assert.ok(customDetections[0].id.startsWith('px-'));
+  });
+
+  it('devuelve un análisis determinista válido cuando no hay API Key de Gemini', async () => {
+    const result = await analyzeImageWithGemini(
+      buildSyntheticAcequiaPng(),
+      'image/png',
+      '',
+    );
+
+    assert.equal(result.providerName, 'gemini-fallback-deterministic');
+    assert.ok(Number.isFinite(result.obstructionPercentage));
+    assert.ok(result.obstructionPercentage >= 0 && result.obstructionPercentage <= 100);
+    assert.ok(['BAJO', 'MEDIO', 'CRITICO'].includes(result.riskLevel));
+    assert.ok(Array.isArray(result.detections));
+    assert.ok(result.notes.length > 0);
   });
 
   it('HuggingFaceVisionProvider exige API Key para fotos personalizadas pero permite escenas de prueba', async () => {

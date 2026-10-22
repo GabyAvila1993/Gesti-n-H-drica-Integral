@@ -29,6 +29,9 @@ export const satelliteConfig = registerAs('satellite', () => ({
 
 export const visionConfig = registerAs('vision', () => ({
   provider: process.env.AI_VISION_PROVIDER || 'mock',
+  gemini: {
+    apiKey: process.env.GEMINI_API_KEY ?? '',
+  },
   huggingface: {
     apiUrl: process.env.HUGGINGFACE_API_URL ?? '',
     token: process.env.HUGGINGFACE_TOKEN ?? '',

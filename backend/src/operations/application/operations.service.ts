@@ -3,7 +3,9 @@ import {
   ConflictException,
   ForbiddenException,
   Inject,
+  InternalServerErrorException,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -13,7 +15,7 @@ import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { DataSource } from 'typeorm';
+import type { DataSource, EntityManager } from 'typeorm';
 import { authConfig, type AuthConfig } from '../../core/config/app.config';
 import { POSTGRES_DATA_SOURCE } from '../../core/database/database.module';
 import { TaskAssignmentEntity } from '../../core/database/entities/task-assignment.entity';
@@ -27,6 +29,7 @@ import type {
   AuthTokenPayload,
   CrewEfficiencyStat,
   CrewTacticalOverview,
+  DailyResolvedTaskHistoryItem,
   LoginResponse,
   ManagerStrategicOverview,
   MunicipalOperationsStats,
@@ -76,8 +79,11 @@ function resolveOperationsDatasetPath(): string {
   return join(process.cwd(), 'src', 'operations', 'data', 'mendoza-operations.mock.json');
 }
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 @Injectable()
 export class OperationsService {
+  private readonly logger = new Logger(OperationsService.name);
   private users: InternalUserRecord[] | null = null;
   private assignments: TaskAssignmentRecord[] | null = null;
   private initPromise: Promise<void> | null = null;
@@ -109,7 +115,7 @@ export class OperationsService {
   private async initializeSeedData(): Promise<void> {
     const raw = await readFile(resolveOperationsDatasetPath(), 'utf-8');
     const dataset = JSON.parse(raw) as OperationsSeedJson;
-    await this.urbanService.getAllAlertsIncludingResolved();
+    const allAlerts = await this.urbanService.getAllAlertsIncludingResolved();
 
     const defaultHash = await bcrypt.hash(
       dataset.defaultPasswordPlain,
@@ -161,6 +167,7 @@ export class OperationsService {
     }
 
     const userByUsername = new Map(this.users.map((u) => [u.username, u]));
+    const userById = new Map(this.users.map((u) => [u.id, u]));
 
     const seededAssignments: TaskAssignmentRecord[] = [];
     for (const item of dataset.seedAssignments) {
@@ -168,9 +175,15 @@ export class OperationsService {
       const crew = userByUsername.get(item.crewUsername);
       if (!assignedBy || !crew) continue;
 
+      const expectedAnalysisId = item.alertId.replace('urb-seed-', 'seed-analysis-');
+      const matchedAlert = allAlerts.find(
+        (a) => a.id === item.alertId || a.analysisId === expectedAnalysisId,
+      );
+      const resolvedAlertId = matchedAlert ? matchedAlert.id : item.alertId;
+
       seededAssignments.push({
         id: item.id,
-        alertId: item.alertId,
+        alertId: resolvedAlertId,
         assignedById: assignedBy.id,
         assignedByUsername: assignedBy.username,
         assignedByName: assignedBy.fullName,
@@ -184,7 +197,52 @@ export class OperationsService {
             ? new Date(now - 1000 * 60 * item.resolvedMinutesAgo).toISOString()
             : undefined,
         resolutionNotes: item.resolutionNotes,
+        evidenceBeforeUrl: item.evidenceBeforeUrl,
+        evidenceAfterUrl: item.evidenceAfterUrl,
       });
+    }
+
+    if (this.dataSource && this.dataSource.isInitialized) {
+      const assignRepo = this.dataSource.getRepository(TaskAssignmentEntity);
+      const dbAssignments = await assignRepo
+        .find({ order: { assigned_at: 'DESC' } })
+        .catch(() => []);
+
+      if (dbAssignments.length > 0) {
+        const fromDb: TaskAssignmentRecord[] = [];
+        for (const row of dbAssignments) {
+          const assignedBy = userById.get(row.assigned_by_id);
+          const crew = userById.get(row.crew_user_id);
+          if (!assignedBy || !crew) continue;
+
+          fromDb.push({
+            id: row.id,
+            alertId: row.alert_id,
+            assignedById: assignedBy.id,
+            assignedByUsername: assignedBy.username,
+            assignedByName: assignedBy.fullName,
+            crewUserId: crew.id,
+            crewUsername: crew.username,
+            crewName: crew.fullName,
+            status: row.status === UrbanAlertStatus.RESOLVED ? 'RESOLVED' : 'PENDING',
+            assignedAt: row.assigned_at.toISOString(),
+            resolvedAt: row.resolved_at ? row.resolved_at.toISOString() : undefined,
+            resolutionNotes: row.resolution_notes ?? undefined,
+            evidenceBeforeUrl: row.evidence_before_url ?? undefined,
+            evidenceAfterUrl: row.evidence_after_url ?? undefined,
+          });
+        }
+
+        // Combinar las asignaciones de la base con las semilla que aún no estén en DB
+        const existingAlertIds = new Set(fromDb.map((a) => a.alertId));
+        for (const seed of seededAssignments) {
+          if (!existingAlertIds.has(seed.alertId)) {
+            fromDb.push(seed);
+          }
+        }
+        this.assignments = fromDb;
+        return;
+      }
     }
 
     this.assignments = seededAssignments;
@@ -549,7 +607,7 @@ export class OperationsService {
    */
   async resolveCrewTask(
     crewPayload: AuthTokenPayload,
-    alertId: string,
+    taskOrAlertId: string,
     dto: ResolveTaskDto,
     files: {
       evidenceBefore?: VisionImageInput;
@@ -562,73 +620,276 @@ export class OperationsService {
     evidenceBeforeUrl: string;
     evidenceAfterUrl: string;
   }> {
-    if (!files.evidenceBefore || !files.evidenceAfter) {
+    const beforeUrl = files.evidenceBefore
+      ? undefined
+      : this.validateEvidenceUrl(dto.evidenceBeforeUrl, 'Antes');
+    const afterUrl = files.evidenceAfter
+      ? undefined
+      : this.validateEvidenceUrl(dto.evidenceAfterUrl, 'Después');
+
+    if ((!files.evidenceBefore && !beforeUrl) || (!files.evidenceAfter && !afterUrl)) {
       throw new BadRequestException(
         'Es obligatorio subir las 2 fotos de auditoría ("Antes" y "Después") para cerrar la tarea.',
       );
     }
 
-    const { assignments } = await this.ensureInitialized();
-    const assignment = assignments.find(
-      (a) => a.alertId === alertId && a.crewUserId === crewPayload.sub && a.status === 'PENDING',
-    );
+    const { users, assignments } = await this.ensureInitialized();
+    const actor = users.find((user) => user.id === crewPayload.sub);
+    if (!actor) {
+      throw new UnauthorizedException('Usuario operativo no encontrado.');
+    }
 
+    const assignment = assignments.find((a) => {
+      if ((a.alertId !== taskOrAlertId && a.id !== taskOrAlertId) || a.status !== 'PENDING') {
+        return false;
+      }
+      if (actor.role === UserRole.CUADRILLA) {
+        return a.crewUserId === actor.id;
+      }
+      return actor.role === UserRole.ENCARGADO || actor.role === UserRole.ADMIN;
+    });
     if (!assignment) {
       throw new ForbiddenException(
-        'Esta alerta no se encuentra asignada activamente a tu cuadrilla.',
+        'No tenés permiso para cerrar esta tarea o no se encuentra asignada activamente.',
       );
     }
 
-    const [savedBefore, savedAfter] = await Promise.all([
-      this.storageService.saveImage({
-        buffer: files.evidenceBefore.buffer,
-        originalname: files.evidenceBefore.originalname,
-        mimetype: files.evidenceBefore.mimetype,
-        folder: 'crew-evidence',
-      }),
-      this.storageService.saveImage({
-        buffer: files.evidenceAfter.buffer,
-        originalname: files.evidenceAfter.originalname,
-        mimetype: files.evidenceAfter.mimetype,
-        folder: 'crew-evidence',
-      }),
-    ]);
-
-    const updatedAlert = await this.urbanService.markAlertResolved(alertId, {
-      resolutionNotes: dto.resolutionNotes,
-      evidenceBeforeUrl: savedBefore.url,
-      evidenceAfterUrl: savedAfter.url,
-    });
-
-    assignment.status = 'RESOLVED';
-    assignment.resolvedAt = updatedAlert.resolvedAt ?? new Date().toISOString();
-    assignment.resolutionNotes =
-      dto.resolutionNotes?.trim() || 'Limpieza de cauce completada por cuadrilla municipal.';
-    assignment.evidenceBeforeUrl = savedBefore.url;
-    assignment.evidenceAfterUrl = savedAfter.url;
-
-    if (this.dataSource && this.dataSource.isInitialized) {
-      const repo = this.dataSource.getRepository(TaskAssignmentEntity);
-      await repo
-        .update(
-          { id: assignment.id },
-          {
-            status: UrbanAlertStatus.RESOLVED,
-            resolved_at: new Date(assignment.resolvedAt),
-            resolution_notes: assignment.resolutionNotes,
-            evidence_before_url: savedBefore.url,
-            evidence_after_url: savedAfter.url,
-          },
-        )
-        .catch(() => undefined);
+    const alert = await this.urbanService.findAlertById(assignment.alertId);
+    if (!alert || alert.municipality !== actor.municipality) {
+      throw new ForbiddenException('La tarea no pertenece a tu municipio.');
     }
 
+    const [savedBefore, savedAfter] = await Promise.all([
+      files.evidenceBefore
+        ? this.storageService.saveImage({
+            buffer: files.evidenceBefore.buffer,
+            originalname: files.evidenceBefore.originalname,
+            mimetype: files.evidenceBefore.mimetype,
+            folder: 'crew-evidence',
+          })
+        : Promise.resolve(null),
+      files.evidenceAfter
+        ? this.storageService.saveImage({
+            buffer: files.evidenceAfter.buffer,
+            originalname: files.evidenceAfter.originalname,
+            mimetype: files.evidenceAfter.mimetype,
+            folder: 'crew-evidence',
+          })
+        : Promise.resolve(null),
+    ]);
+    const evidenceBeforeUrl = savedBefore?.url ?? beforeUrl!;
+    const evidenceAfterUrl = savedAfter?.url ?? afterUrl!;
+
+    const resolutionText =
+      dto.resolutionNotes?.trim() ||
+      'Limpieza de cauce completada por cuadrilla municipal.';
+    const resolvedAt = new Date().toISOString();
+
+    if (this.dataSource && this.dataSource.isInitialized) {
+      const previousAlertState = {
+        status: alert.status,
+        resolvedAt: alert.resolvedAt,
+        notes: alert.notes,
+        evidenceBeforeUrl: alert.evidenceBeforeUrl,
+        evidenceAfterUrl: alert.evidenceAfterUrl,
+      };
+      try {
+        await this.dataSource.transaction(async (manager) => {
+          await this.persistResolvedAssignment(
+            manager,
+            assignment,
+            resolvedAt,
+            resolutionText,
+            evidenceBeforeUrl,
+            evidenceAfterUrl,
+          );
+          await this.urbanService.markAlertResolved(
+            assignment.alertId,
+            {
+              resolutionNotes: resolutionText,
+              evidenceBeforeUrl,
+              evidenceAfterUrl,
+              resolvedAt,
+            },
+            manager,
+          );
+        });
+      } catch (error) {
+        this.logger.error(
+          `No se pudo persistir el cierre de la tarea ${assignment.alertId}.`,
+          error instanceof Error ? error.stack : String(error),
+        );
+        alert.status = previousAlertState.status;
+        alert.resolvedAt = previousAlertState.resolvedAt;
+        alert.notes = previousAlertState.notes;
+        alert.evidenceBeforeUrl = previousAlertState.evidenceBeforeUrl;
+        alert.evidenceAfterUrl = previousAlertState.evidenceAfterUrl;
+        const cleanupResults = await Promise.allSettled(
+          [savedBefore, savedAfter]
+            .filter((file): file is NonNullable<typeof file> => file !== null)
+            .map((file) => this.storageService.deleteImage(file.key)),
+        );
+        for (const cleanup of cleanupResults) {
+          if (cleanup.status === 'rejected') {
+            this.logger.error(
+              `No se pudo eliminar una evidencia subida para la tarea ${assignment.alertId}.`,
+              cleanup.reason instanceof Error
+                ? cleanup.reason.stack
+                : String(cleanup.reason),
+            );
+          }
+        }
+        throw new InternalServerErrorException(
+          'No se pudo guardar el cierre de la tarea. No se confirmó la resolución.',
+          { cause: error },
+        );
+      }
+    } else {
+      await this.urbanService.markAlertResolved(assignment.alertId, {
+        resolutionNotes: resolutionText,
+        evidenceBeforeUrl,
+        evidenceAfterUrl,
+        resolvedAt,
+      });
+    }
+
+    assignment.status = 'RESOLVED';
+    assignment.resolvedAt = resolvedAt;
+    assignment.resolutionNotes = resolutionText;
+    assignment.evidenceBeforeUrl = evidenceBeforeUrl;
+    assignment.evidenceAfterUrl = evidenceAfterUrl;
+
     return {
-      alertId: updatedAlert.id,
+      alertId: assignment.alertId,
       status: 'RESOLVED',
-      resolvedAt: assignment.resolvedAt,
-      evidenceBeforeUrl: savedBefore.url,
-      evidenceAfterUrl: savedAfter.url,
+      resolvedAt,
+      evidenceBeforeUrl,
+      evidenceAfterUrl,
     };
+  }
+
+  private validateEvidenceUrl(value: string | undefined, label: string): string | undefined {
+    const url = value?.trim();
+    if (!url) return undefined;
+
+    const isLocalUpload = url.startsWith('/uploads/') && !url.includes('..') && !url.includes('\\');
+    let isHttpUrl = false;
+    try {
+      const parsed = new URL(url);
+      isHttpUrl = parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch {
+      isHttpUrl = false;
+    }
+    if (!isLocalUpload && !isHttpUrl) {
+      throw new BadRequestException(`La URL de evidencia "${label}" no es válida.`);
+    }
+    return url;
+  }
+
+  private async persistResolvedAssignment(
+    manager: EntityManager,
+    assignment: TaskAssignmentRecord,
+    resolvedAt: string,
+    resolutionNotes: string,
+    evidenceBeforeUrl: string,
+    evidenceAfterUrl: string,
+  ): Promise<void> {
+    const repository = manager.getRepository(TaskAssignmentEntity);
+    const existing = UUID_REGEX.test(assignment.id)
+      ? await repository.findOne({ where: { id: assignment.id } })
+      : await repository.findOne({ where: { alert_id: assignment.alertId } });
+
+    if (existing) {
+      existing.status = UrbanAlertStatus.RESOLVED;
+      existing.resolved_at = new Date(resolvedAt);
+      existing.resolution_notes = resolutionNotes;
+      existing.evidence_before_url = evidenceBeforeUrl;
+      existing.evidence_after_url = evidenceAfterUrl;
+      await repository.save(existing);
+      return;
+    }
+
+    if (
+      !UUID_REGEX.test(assignment.alertId) ||
+      !UUID_REGEX.test(assignment.assignedById) ||
+      !UUID_REGEX.test(assignment.crewUserId)
+    ) {
+      throw new Error('La tarea no tiene identificadores válidos para persistir en la base de datos.');
+    }
+
+    const created = repository.create({
+      alert_id: assignment.alertId,
+      assigned_by_id: assignment.assignedById,
+      crew_user_id: assignment.crewUserId,
+      status: UrbanAlertStatus.RESOLVED,
+      resolved_at: new Date(resolvedAt),
+      resolution_notes: resolutionNotes,
+      evidence_before_url: evidenceBeforeUrl,
+      evidence_after_url: evidenceAfterUrl,
+    });
+    await repository.save(created);
+  }
+
+  /**
+   * Historial de tareas resueltas para el usuario autenticado, limitado a 24 horas.
+   */
+  async getCrewTasksHistory(
+    userPayload: AuthTokenPayload,
+  ): Promise<DailyResolvedTaskHistoryItem[]> {
+    const { users, assignments } = await this.ensureInitialized();
+    const user = users.find((u) => u.id === userPayload.sub);
+    if (!user) {
+      throw new UnauthorizedException('Usuario operativo no encontrado.');
+    }
+
+    const allMunicipalAlerts = await this.urbanService.getAllAlertsIncludingResolved(
+      user.municipality,
+    );
+    const alertById = new Map(allMunicipalAlerts.map((a) => [a.id, a]));
+    const cutoffMs = Date.now() - 24 * 60 * 60 * 1000;
+
+    const filteredAssignments = assignments.filter((a) => {
+      if (a.status !== 'RESOLVED' || !a.resolvedAt) return false;
+      const resolvedTimeMs = new Date(a.resolvedAt).getTime();
+      if (Number.isNaN(resolvedTimeMs) || resolvedTimeMs < cutoffMs) {
+        return false;
+      }
+
+      if (user.role === UserRole.CUADRILLA) {
+        return a.crewUserId === user.id;
+      }
+      if (user.role === UserRole.ENCARGADO) {
+        return a.assignedById === user.id;
+      }
+      return user.role === UserRole.ADMIN;
+    });
+
+    const history: DailyResolvedTaskHistoryItem[] = [];
+    for (const assignment of filteredAssignments) {
+      const alert = alertById.get(assignment.alertId);
+      if (!alert) continue;
+
+      history.push({
+        id: assignment.id,
+        alertId: alert.id,
+        address: alert.address,
+        municipality: alert.municipality,
+        riskLevel: alert.riskLevel,
+        obstructionPercentage: alert.obstructionPercentage,
+        status: 'RESOLVED',
+        resolvedAt: assignment.resolvedAt!,
+        resolutionNotes: assignment.resolutionNotes ?? alert.notes ?? '',
+        crewUserId: assignment.crewUserId,
+        crewName: assignment.crewName,
+        assignedById: assignment.assignedById,
+        assignedByName: assignment.assignedByName,
+        evidenceBeforeUrl: assignment.evidenceBeforeUrl ?? alert.evidenceBeforeUrl,
+        evidenceAfterUrl: assignment.evidenceAfterUrl ?? alert.evidenceAfterUrl,
+      });
+    }
+
+    return history.sort(
+      (a, b) => new Date(b.resolvedAt).getTime() - new Date(a.resolvedAt).getTime(),
+    );
   }
 }

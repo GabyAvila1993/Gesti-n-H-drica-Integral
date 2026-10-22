@@ -106,3 +106,21 @@ export interface CrewTacticalOverview {
   readonly pendingTasks: CrewTacticalTaskItem[];
   readonly completedTasks: CrewTacticalTaskItem[];
 }
+
+export interface DailyResolvedTaskHistoryItem {
+  readonly id: string;
+  readonly alertId: string;
+  readonly address: string;
+  readonly municipality: UrbanMunicipality;
+  readonly riskLevel: UrbanRiskLevel;
+  readonly obstructionPercentage: number;
+  readonly status: 'RESOLVED';
+  readonly resolvedAt: string;
+  readonly resolutionNotes?: string;
+  readonly crewUserId: string;
+  readonly crewName: string;
+  readonly assignedById: string;
+  readonly assignedByName: string;
+  readonly evidenceBeforeUrl?: string;
+  readonly evidenceAfterUrl?: string;
+}

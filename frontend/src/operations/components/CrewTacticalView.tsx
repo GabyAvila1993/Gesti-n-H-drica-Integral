@@ -12,7 +12,11 @@ import { classNames } from '../../shared/ui/class-names';
 import styles from '../OperationsPanelPage.module.css';
 import { operationsApi } from '../services/operations.api';
 import { computeStreetRoutes, type StreetRouteOption } from '../services/osrm-routing';
-import type { CrewTacticalOverview, PublicUser } from '../types';
+import type {
+  CrewTacticalOverview,
+  DailyResolvedTaskHistoryItem,
+  PublicUser,
+} from '../types';
 
 interface CrewTacticalViewProps {
   token: string;
@@ -68,6 +72,9 @@ export function CrewTacticalView({ token, currentUser }: CrewTacticalViewProps) 
   const [overview, setOverview] = useState<CrewTacticalOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [taskHistory, setTaskHistory] = useState<DailyResolvedTaskHistoryItem[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(true);
+  const [historyError, setHistoryError] = useState<string | null>(null);
 
   const [activeAlertId, setActiveAlertId] = useState<string | null>(null);
 
@@ -214,6 +221,27 @@ export function CrewTacticalView({ token, currentUser }: CrewTacticalViewProps) 
     void loadTasks();
   }, [loadTasks]);
 
+  const loadTasksHistory = useCallback(async () => {
+    setLoadingHistory(true);
+    setHistoryError(null);
+    try {
+      const history = await operationsApi.getTasksHistory(token);
+      setTaskHistory(history);
+    } catch (err) {
+      setHistoryError(
+        err instanceof ApiError
+          ? err.message
+          : 'No se pudo cargar el historial de tareas completadas.',
+      );
+    } finally {
+      setLoadingHistory(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    void loadTasksHistory();
+  }, [loadTasksHistory]);
+
   const handleCalculateDirections = async (alertId: string, dest: { lat: number; lng: number }) => {
     setActiveAlertId(alertId);
     setRoutingAlertId(alertId);
@@ -258,7 +286,7 @@ export function CrewTacticalView({ token, currentUser }: CrewTacticalViewProps) 
         setRoutingAlertId(null);
         setRoutingDestination(null);
       }
-      await loadTasks();
+      await Promise.all([loadTasks(), loadTasksHistory()]);
     } catch (err) {
       setBannerMsg({
         tone: 'error',
@@ -597,6 +625,42 @@ export function CrewTacticalView({ token, currentUser }: CrewTacticalViewProps) 
                 );
               })}
             </div>
+          )}
+        </Card>
+
+        <Card title="Historial de Tareas Completadas (Hoy)" className={styles.taskHistoryCard}>
+          {loadingHistory ? (
+            <Spinner label="Cargando tareas completadas…" />
+          ) : historyError ? (
+            <div className={styles.errorBox} role="status">
+              {historyError}
+              <Button variant="ghost" onClick={() => void loadTasksHistory()}>
+                Reintentar
+              </Button>
+            </div>
+          ) : taskHistory.length === 0 ? (
+            <p className={styles.taskHistoryEmpty}>Todavía no hay tareas completadas hoy.</p>
+          ) : (
+            <ul className={styles.taskHistoryList}>
+              {taskHistory.map((task) => (
+                <li key={task.id} className={styles.taskHistoryItem}>
+                  <span className={styles.taskHistoryCheck} aria-label="Tarea completada">
+                    ✅
+                  </span>
+                  <span className={styles.taskHistoryAddress}>{task.address}</span>
+                  <time
+                    className={styles.taskHistoryTime}
+                    dateTime={task.resolvedAt}
+                    title={new Date(task.resolvedAt).toLocaleString('es-AR')}
+                  >
+                    {new Intl.DateTimeFormat('es-AR', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    }).format(new Date(task.resolvedAt))}
+                  </time>
+                </li>
+              ))}
+            </ul>
           )}
         </Card>
       </div>

@@ -97,3 +97,22 @@ export interface CrewTacticalOverview {
   pendingTasks: CrewTacticalTaskItem[];
   completedTasks: CrewTacticalTaskItem[];
 }
+
+export interface DailyResolvedTaskHistoryItem {
+  id: string;
+  alertId: string;
+  address: string;
+  municipality: Municipality;
+  riskLevel: Severity;
+  obstructionPercentage: number;
+  status: 'RESOLVED';
+  resolvedAt: string;
+  resolutionNotes?: string;
+  crewUserId: string;
+  crewName: string;
+  assignedById: string;
+  assignedByName: string;
+  evidenceBeforeUrl?: string;
+  evidenceAfterUrl?: string;
+}
+

@@ -2,7 +2,11 @@ import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { DetectedObject } from '../domain/detection';
-import { analyzeImagePixels } from './pixel-vision.analyzer';
+import {
+  analyzeImagePixels,
+  analyzeImageWithGemini,
+  type FullVisionAnalysis,
+} from './pixel-vision.analyzer';
 import type {
   PresetScenarioKey,
   VisionImageInput,
@@ -68,14 +72,16 @@ export function resolvePresetKey(image: VisionImageInput): PresetScenarioKey | n
 }
 
 /**
- * Ruteo inteligente:
+ * Ruteo inteligente con integración de Google Gemini (`gemini-1.5-flash`):
  * - Si la petición proviene de una escena de prueba (`presetId` o SVG de muestra), devuelve
  *   las coordenadas del dataset estático `mendoza-urban.mock.json`.
- * - Si el usuario sube una foto real por Drag & Drop (JPG/PNG), analiza la imagen píxel por píxel
- *   para ubicar dinámicamente los cúmulos de residuos reales en la foto.
+ * - Si el usuario sube una foto real por Drag & Drop (JPG/PNG/WebP), envía el buffer a
+ *   `gemini-1.5-flash` con fallback determinista automático en caso de error/cuota.
  */
 export class MockVisionProvider implements VisionProvider {
-  readonly name = 'pixel-analyzer';
+  readonly name = 'gemini-1.5-flash';
+
+  constructor(private readonly geminiApiKey?: string) {}
 
   async analyzeImage(image: VisionImageInput): Promise<DetectedObject[]> {
     const presetKey = resolvePresetKey(image);
@@ -84,7 +90,20 @@ export class MockVisionProvider implements VisionProvider {
       return dataset.visionScenarios[presetKey];
     }
 
-    // Análisis dinámico píxel por píxel sobre la imagen real subida por el usuario
+    const apiKey = (this.geminiApiKey ?? process.env.GEMINI_API_KEY ?? '').trim();
+    if (apiKey.length > 0) {
+      const full = await analyzeImageWithGemini(image.buffer, image.mimetype, apiKey);
+      return full.detections;
+    }
+
     return analyzeImagePixels(image.buffer, image.mimetype);
+  }
+
+  async analyzeImageFull(image: VisionImageInput): Promise<FullVisionAnalysis | null> {
+    const presetKey = resolvePresetKey(image);
+    if (presetKey) {
+      return null;
+    }
+    return analyzeImageWithGemini(image.buffer, image.mimetype, this.geminiApiKey);
   }
 }

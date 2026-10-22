@@ -42,13 +42,13 @@ import { UrbanChannelsController } from './urban-channels.controller';
       provide: VISION_PROVIDER,
       inject: [visionConfig.KEY],
       useFactory: (config: VisionConfig): VisionProvider => {
-        if (config.provider === 'huggingface' || Boolean(config.huggingface.token)) {
+        if (config.provider === 'huggingface') {
           return new HuggingFaceVisionProvider(config.huggingface);
         }
-        if (config.provider === 'roboflow' || Boolean(config.roboflow.apiKey)) {
+        if (config.provider === 'roboflow') {
           return new RoboflowVisionProvider(config.roboflow);
         }
-        return new MockVisionProvider();
+        return new MockVisionProvider(config.gemini.apiKey);
       },
     },
     UrbanAnalysisService,

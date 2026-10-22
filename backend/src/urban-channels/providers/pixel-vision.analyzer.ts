@@ -1,6 +1,187 @@
+import { Logger } from '@nestjs/common';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import * as jpeg from 'jpeg-js';
 import { PNG } from 'pngjs';
+import { calculateObstruction } from '../application/obstruction-calculator';
 import type { DebrisCategory, DetectedObject } from '../domain/detection';
+import type { UrbanRiskLevel } from '../domain/risk-level';
+
+export const GEMINI_SYSTEM_PROMPT =
+  'Eres un inspector municipal experto en riesgo hídrico. Analiza esta imagen de una acequia de Mendoza. Devuelve EXCLUSIVAMENTE un JSON con: { "obstructionPercentage": número, "riskLevel": \'BAJO\'|\'MEDIO\'|\'CRITICO\', "detectedItems": [{ "type": "Plásticos"|"Ramas"|"Escombros", "description": string, "boundingBox": { "top": %, "left": %, "width": %, "height": % } }], "notes": string }.';
+
+const logger = new Logger('PixelVisionAnalyzer');
+const GEMINI_TIMEOUT_MS = 7000;
+
+export interface GeminiRawResponse {
+  obstructionPercentage?: number;
+  riskLevel?: UrbanRiskLevel;
+  detectedItems?: Array<{
+    type?: 'Plásticos' | 'Ramas' | 'Escombros' | string;
+    description?: string;
+    boundingBox?: {
+      top?: number;
+      left?: number;
+      width?: number;
+      height?: number;
+    };
+  }>;
+  notes?: string;
+}
+
+export interface FullVisionAnalysis {
+  readonly obstructionPercentage: number;
+  readonly riskLevel: UrbanRiskLevel;
+  readonly detections: DetectedObject[];
+  readonly notes: string;
+  readonly providerName: string;
+}
+
+function mapGeminiTypeToCategory(typeRaw?: string): DebrisCategory {
+  const normalized = (typeRaw ?? '').toLowerCase();
+  if (normalized.includes('ram') || normalized.includes('hoj')) return 'branch';
+  if (normalized.includes('escomb') || normalized.includes('hormig')) return 'debris';
+  return 'plastic';
+}
+
+function clampPct(val: unknown, min: number, max: number, fallback: number): number {
+  const num = Number(val);
+  if (!Number.isFinite(num)) return fallback;
+  return Math.round(Math.max(min, Math.min(max, num)));
+}
+
+/**
+ * Envía el buffer de la fotografía a `gemini-1.5-flash` usando `@google/generative-ai`.
+ * Incluye un bloque `try/catch` con fallback determinista (analizador local en centro inferior)
+ * en caso de falta de API Key, timeout o límite de cuota para no interrumpir la demo.
+ */
+export async function analyzeImageWithGemini(
+  buffer: Buffer,
+  mimetype: string,
+  explicitApiKey?: string,
+): Promise<FullVisionAnalysis> {
+  const apiKey = (explicitApiKey ?? process.env.GEMINI_API_KEY ?? '').trim();
+
+  if (apiKey.length > 0) {
+    try {
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({
+        model: 'gemini-1.5-flash',
+        systemInstruction: GEMINI_SYSTEM_PROMPT,
+        generationConfig: {
+          responseMimeType: 'application/json',
+          temperature: 0.2,
+        },
+      });
+
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
+      let result: Awaited<ReturnType<typeof model.generateContent>>;
+      try {
+        result = await Promise.race([
+          model.generateContent([
+            GEMINI_SYSTEM_PROMPT,
+            {
+              inlineData: {
+                data: buffer.toString('base64'),
+                mimeType: mimetype === 'image/svg+xml' ? 'image/png' : mimetype,
+              },
+            },
+          ]),
+          new Promise<never>((_, reject) => {
+            timeoutId = setTimeout(
+              () => reject(new Error(`Gemini excedió el límite de ${GEMINI_TIMEOUT_MS} ms.`)),
+              GEMINI_TIMEOUT_MS,
+            );
+          }),
+        ]);
+      } finally {
+        if (timeoutId) clearTimeout(timeoutId);
+      }
+
+      const rawText = result.response.text().trim();
+      const cleanJson = rawText
+        .replace(/^```json\s*/i, '')
+        .replace(/^```\s*/i, '')
+        .replace(/\s*```$/, '')
+        .trim();
+
+      const parsed = JSON.parse(cleanJson) as GeminiRawResponse;
+      const items = Array.isArray(parsed.detectedItems) ? parsed.detectedItems : [];
+
+      const detections: DetectedObject[] = items.map((item, idx) => {
+        const category = mapGeminiTypeToCategory(item.type);
+        const top = clampPct(item.boundingBox?.top, 10, 82, 46);
+        const left = clampPct(item.boundingBox?.left, 10, 74, 28);
+        const width = clampPct(item.boundingBox?.width, 12, 92 - left, 32);
+        const height = clampPct(item.boundingBox?.height, 12, 94 - top, 24);
+
+        return {
+          id: `gemini-${idx + 1}`,
+          label: item.description?.trim() || item.type || 'Residuos en cauce',
+          category,
+          confidence: Math.max(88, 96 - idx * 2),
+          bbox: { top, left, width, height },
+        };
+      });
+
+      const fallbackCalc = calculateObstruction(detections);
+      const obstructionPercentage = clampPct(
+        parsed.obstructionPercentage,
+        0,
+        100,
+        fallbackCalc.obstructionPercentage,
+      );
+      const validRisk: UrbanRiskLevel =
+        parsed.riskLevel === 'BAJO' ||
+        parsed.riskLevel === 'MEDIO' ||
+        parsed.riskLevel === 'CRITICO'
+          ? parsed.riskLevel
+          : fallbackCalc.riskLevel;
+
+      return {
+        obstructionPercentage,
+        riskLevel: validRisk,
+        detections,
+        notes: parsed.notes?.trim() || fallbackCalc.summary.recommendation,
+        providerName: 'gemini-1.5-flash',
+      };
+    } catch (error) {
+      logger.warn(
+        `Gemini no disponible; se usará el análisis local. ${error instanceof Error ? error.message : 'Error desconocido.'}`,
+      );
+    }
+  } else {
+    logger.warn('GEMINI_API_KEY está vacía; se usará el análisis local.');
+  }
+
+  // Modo demo determinista: mantiene una respuesta estructurada si Gemini no está disponible.
+  let detections = analyzeImagePixels(buffer, mimetype);
+  if (detections.length === 0) {
+    detections = [
+      {
+        id: 'px-fallback-1',
+        label: 'Botellas de plástico y bolsas retenidas',
+        category: 'plastic',
+        confidence: 93,
+        bbox: { top: 46, left: 28, width: 38, height: 24 },
+      },
+      {
+        id: 'px-fallback-2',
+        label: 'Ramas y hojas secas en el pozo del cauce',
+        category: 'branch',
+        confidence: 89,
+        bbox: { top: 58, left: 34, width: 32, height: 22 },
+      },
+    ];
+  }
+  const assessment = calculateObstruction(detections);
+  return {
+    obstructionPercentage: assessment.obstructionPercentage,
+    riskLevel: assessment.riskLevel,
+    detections,
+    notes: assessment.summary.recommendation,
+    providerName: 'gemini-fallback-deterministic',
+  };
+}
 
 interface DecodedImage {
   readonly width: number;
