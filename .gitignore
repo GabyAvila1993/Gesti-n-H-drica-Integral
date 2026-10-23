@@ -1,6 +1,7 @@
 # Documentos internos y manual técnico privado (nunca se suben al repositorio)
 PLAN_IMPLEMENTACION_v2.md
 MANUAL_ARQUITECTURA.md
+estrategia-pitch.md
 
 # Dependencias
 node_modules/
@@ -26,6 +27,5 @@ npm-debug.log*
 .idea/
 .DS_Store
 Thumbs.db
-.env.example
 
 test-models.js
